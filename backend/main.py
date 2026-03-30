@@ -1,4 +1,5 @@
 import subprocess
+from datetime import datetime
 
 # Executa o comando arp -a e captura o output armazenando na variavel 'resultado'
 resultado = subprocess.run(['arp', '-a'], capture_output=True, text=True)
@@ -22,8 +23,11 @@ for linha in linhas:
         # Ignora linhas que não estão no formato esperado
         continue
 
+timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
 # Salva os resultados no arquivo scan.txt
 with open('scan.txt', 'a') as test:
+    test.write(f"\n=== Scan realizado em {timestamp} ===\n")	
     for d in dispositivos:
         test.write(f"""Nome: {d['Nome']}
 IP: {d['IP']}
@@ -33,6 +37,8 @@ Interface: {d['Interface']}
 """)
 
 # agora printamos todos  os dispositivos  no terminal da pra perceber
+
 for d in dispositivos:
+    print(f"\n=== Scan realizado em {timestamp} ===\n")
     print(f"Nome: {d['Nome']}\nIP: {d['IP']}\nMAC: {d['MAC']}\nInterface: {d['Interface']}")
     print('-'*20)
