@@ -36,9 +36,10 @@ Interface: {d['Interface']}
 ------------------------
 """)
 
-# agora printamos todos  os dispositivos  no terminal da pra perceber
+# agora printamos todos  os dispositivos  no terminal
 
 for d in dispositivos:
     print(f"\n=== Scan realizado em {timestamp} ===\n")
     print(f"Nome: {d['Nome']}\nIP: {d['IP']}\nMAC: {d['MAC']}\nInterface: {d['Interface']}")
     print('-'*20)
+	
