@@ -62,7 +62,7 @@ python Scanner.py
 ### Se estiver na raiz do projeto:
 
 ```bash
-python backend/Scanner.py
+python core/Scanner.py
 ```
 
 ---
