@@ -78,14 +78,7 @@ O script irá mostrar:
   * IP
   * MAC
   * Interface
-  EX:
 
-  *       Redes Disponíveis – 0000-00-00 00:00:00          
-┏━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┓
-┃   Nome   ┃     IP      ┃        MAC        ┃ Interface ┃
-┡━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━┩
-│   ****   │ 192.168.0.0 │ aa:bb:cc:aa:bb:cc │   *****   │
-└──────────┴─────────────┴───────────────────┴───────────┘
 
 Além disso, os dados são guardados automaticamente em um ficheiro de log.
 
