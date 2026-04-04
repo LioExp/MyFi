@@ -53,7 +53,7 @@ pip install -r requirements.txt
 
 ## ▶️ Como Executar
 
-### Se estiver no diretório `backend`:
+### Se estiver no diretório `core`:
 
 ```bash
 python Scanner.py
@@ -62,7 +62,7 @@ python Scanner.py
 ### Se estiver na raiz do projeto:
 
 ```bash
-python backend/Scanner.py
+python core/Scanner.py
 ```
 
 ---
@@ -78,6 +78,12 @@ O script irá mostrar:
   * IP
   * MAC
   * Interface
+ 
+    Ex:
+    
+    <img width="477" height="112" alt="image" src="https://github.com/user-attachments/assets/d9dd020d-7233-415f-86ae-68a25bd37fd1" />
+
+
 
 Além disso, os dados são guardados automaticamente em um ficheiro de log.
 
