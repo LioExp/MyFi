@@ -78,6 +78,11 @@ O script irá mostrar:
   * IP
   * MAC
   * Interface
+ 
+    Ex:
+    
+    <img width="477" height="112" alt="image" src="https://github.com/user-attachments/assets/d9dd020d-7233-415f-86ae-68a25bd37fd1" />
+
 
 
 Além disso, os dados são guardados automaticamente em um ficheiro de log.
