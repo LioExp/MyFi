@@ -1,5 +1,10 @@
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parent.parent))
 import subprocess
 import socket
+from alert_telegram import send_telegram_message
+from config.config import TOKEN, CHAT_ID
 
 
 # funções globais
@@ -20,8 +25,9 @@ meu_ip = get_local_ip()
 Total_bytes_enviado = 0
 Total_bytes_recebido = 0
 Total_bytes_dia = 0
-limite_mb = 200
+limite_mb = 1
 valor_limite = 1024*1024*limite_mb
+alerta_enviado = False
 while True:
  
 
@@ -63,5 +69,6 @@ while True:
 
     print(f'IP: {meu_ip}\nBytes recebidos: {Total_bytes_recebido}\nbytes enviado: {Total_bytes_enviado}')
     Total_bytes_dia = Total_bytes_enviado + Total_bytes_recebido
-    if Total_bytes_dia> valor_limite:
-        print('Aviso!, você ultrapassou o limite de consumo')
+    if Total_bytes_dia> valor_limite and not alerta_enviado:
+        send_telegram_message(TOKEN,CHAT_ID,message='Aviso!, voçê ultrapassou o limite de uso.')
+        alerta_enviado = True
