@@ -5,7 +5,8 @@ import subprocess
 import socket
 from alert_telegram import send_telegram_message
 from config.config import TOKEN, CHAT_ID
-
+from db.database import save_to_db
+from Scanner import reverse_dns
 
 # funções globais
 def get_local_ip():
@@ -22,25 +23,43 @@ def get_local_ip():
 
 #variaveis globais
 meu_ip = get_local_ip()
+meu_mac = 'Unknon'
 Total_bytes_enviado = 0
 Total_bytes_recebido = 0
 Total_bytes_dia = 0
 limite_mb = 1
 valor_limite = 1024*1024*limite_mb
 alerta_enviado = False
+
 while True:
  
-
     # origem do pacote, filtro pra bytes recebidos com o ip.dst
     resultado1 = subprocess.run(['sudo','tshark', '-i', 'wlan0', '-a', 'duration:10', '-T', 'fields', '-e', 'ip.dst', '-e', 'frame.len', '-Y',f'ip.dst == {meu_ip}'], capture_output=True, text=True)
     #origem do pacote, iltro para bytes enviados com o ip.src
     resultado2 = subprocess.run(['sudo','tshark', '-i', 'wlan0', '-a', 'duration:10', '-T', 'fields', '-e', 'ip.dst', '-e', 'frame.len', '-Y',f'ip.src == {meu_ip}'], capture_output=True, text=True)
-
+    # Executa o comando arp -a e captura o output armazenando na variavel 'resultado'
+    resultado = subprocess.run(['arp', '-a'], capture_output=True, text=True)
+    
     #variaveis globais
+    linhas = resultado.stdout.split("\n")
     linhas1 = resultado1.stdout.split('\n')
     linhas2 = resultado2.stdout.split('\n')
 
+    # processa cada linha do resultado do arp
+    for linha in linhas:
+        if not linha.strip():
+            continue
+        partes = linha.split()
 
+        try:
+            if partes[1].strip('()') == meu_ip:
+                
+                meu_mac = partes[3]
+                            
+        except IndexError:
+            # Ignora linhas que não estão no formato esperado
+            continue
+       
     # soma todos os bytes recebidos
     for linha1 in linhas1:
         if not linha1.strip():
@@ -68,7 +87,10 @@ while True:
             continue
 
     print(f'IP: {meu_ip}\nBytes recebidos: {Total_bytes_recebido}\nbytes enviado: {Total_bytes_enviado}')
+
     Total_bytes_dia = Total_bytes_enviado + Total_bytes_recebido
+    save_to_db(meu_mac,reverse_dns(meu_ip),meu_ip,Total_bytes_enviado,Total_bytes_recebido)
+
     if Total_bytes_dia> valor_limite and not alerta_enviado:
         send_telegram_message(TOKEN,CHAT_ID,message='Aviso!, voçê ultrapassou o limite de uso.')
         alerta_enviado = True
