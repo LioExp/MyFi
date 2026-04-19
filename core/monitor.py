@@ -5,7 +5,6 @@ import sys
 from datetime import datetime
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
 from rich.console import Console
 from rich.live import Live
 from rich.panel import Panel
