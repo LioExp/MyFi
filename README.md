@@ -101,7 +101,7 @@ myfi/
 
 ## 🗺️ Roadmap (versões futuras)
 
-- **v1.0** (MVP) – scanner completo + logging + CLI rica ✅ (parcial)
+- **v1.0** (MVP) – scanner completo + logging + CLI 
 - **v2.0** – monitorização de tráfego com `tshark`, limites por dispositivo, alertas (Telegram/email)
 - **v3.0** – sistema de chunks (automação modular)
 - **v4.0** – deteção de anomalias com IA (Isolation Forest)
