@@ -53,16 +53,10 @@ pip install -r requirements.txt
 
 ## ▶️ Como Executar
 
-### Se estiver no diretório `core`:
+### Dentro da raiz do projeto:
 
 ```bash
-python Scanner.py
-```
-
-### Se estiver na raiz do projeto:
-
-```bash
-python core/Scanner.py
+python main.py
 ```
 
 ---
@@ -71,19 +65,5 @@ python core/Scanner.py
 
 O script irá mostrar:
 
-* Todos os dispositivos que o seu computador **está conectado ou já se conectou**
-* Informações como:
-
-  * Nome
-  * IP
-  * MAC
-  * Interface
- 
-    Ex:
-    
-    <img width="477" height="112" alt="image" src="https://github.com/user-attachments/assets/d9dd020d-7233-415f-86ae-68a25bd37fd1" />
-
-
-
-Além disso, os dados são guardados automaticamente em um ficheiro de log.
+<img width="378" height="205" alt="image" src="https://github.com/user-attachments/assets/6eaf6b9a-0219-422a-91fc-2da4ce382cc1" />
 
