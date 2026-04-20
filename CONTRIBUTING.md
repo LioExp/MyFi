@@ -25,6 +25,18 @@ Obrigado por considerar contribuir! Este documento ajuda a manter o projeto orga
 4. **Teste as suas alterações** – garanta que `python main.py scan` continua a funcionar.
 5. **Envie o PR para a branch `dev`** (não para `main`).
 
+## Community
+
+Seja respeitoso e construtivo com outros contribuidores.
+
+Os maintainers podem solicitar:
+- escopo mais reduzido
+- PRs de seguimento focados
+- validação mais rigorosa
+- atualizações na documentação para mudanças de comportamento
+
+Isso é normal e ajuda a manter o projeto revisável à medida que cresce.
+
 ## Ambiente de desenvolvimento
 
 ```bash
