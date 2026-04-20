@@ -20,7 +20,7 @@ Desenvolvido em Python, fornece descoberta de dispositivos (IP, MAC, hostname), 
 
 ### v1.0 – Scanner de Rede (parcial)
 - Lista dispositivos na rede local usando `arp -a`
-- Mostra **Nome**, **IP**, **MAC** e **Interface** numa tabela colorida com `rich`
+- Mostra **Nome**, **IP**, **MAC** e **Interface** numa tabela com `rich`
 - Registo automático em `logs/scan.txt` com timestamp
 - Integração com o assistente (usa a interface configurada)
 
@@ -106,9 +106,6 @@ myfi/
 - **v3.0** – sistema de chunks (automação modular)
 - **v4.0** – deteção de anomalias com IA (Isolation Forest)
 - **v5.0** – interface gráfica (PySide6 ou web local)
-
-Consultar o [PRD completo](./docs/PRD.md) para mais detalhes.
-
 ---
 
 ## 🤝 Contribuição
@@ -119,10 +116,10 @@ Contribuições são bem-vindas! Consulte o ficheiro [CONTRIBUTING.md](./CONTRIB
 
 ## 📄 Licença
 
-MIT © [LioExp](https://github.com/lioexp)
+MIT © [LioExp](https://github.com/lioexp).
 
 ---
 ## 🙌 Agradecimentos
 
-Projeto desenvolvido como parte da jornada de aprendizagem em redes e segurança, com foco em autonomia
+Projeto desenvolvido como parte da jornada de aprendizagem em redes e segurança, com foco em autonomia.
 
