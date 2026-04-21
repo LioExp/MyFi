@@ -6,10 +6,9 @@ from rich.console import Console
 from rich.prompt import Prompt, Confirm
 from rich.text import Text
 from rich.style import Style
-from core.config_manager import save_config
+from core.config_manager import save_config, is_configured
 
 console = Console()
-
 
 def tela_abertura():
     console.clear()
@@ -87,6 +86,9 @@ def verificar_sudo():
 
 def wizard():
     try:
+        if is_configured():
+            console.print("[green]✓ MyFi is already configured. Use 'myfi setup' to reconfigure it.[/green]")
+            return
         tela_abertura()
 
         with console.status("[bold cyan]Detecting network interfaces...[/bold cyan]", spinner="dots"):
