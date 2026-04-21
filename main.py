@@ -4,8 +4,6 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
-
-# Seus módulos internos
 from core.config_manager import is_configured
 from ui.cli.setup_wizard import wizard
 from core.Scanner import main as scan_main
@@ -42,7 +40,6 @@ def show_help():
     console.print("Example: [dim]$ myfi setup[/dim]")
 
 class MyFiArgumentParser(argparse.ArgumentParser):
-    """Parser customizado para usar Rich em erros e ajuda."""
     
     def error(self, message):
         console.print(f"[red]✗ Error: {message}[/red]")
