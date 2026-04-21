@@ -1,9 +1,12 @@
-import subprocess
 import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
+import subprocess
 from rich.console import Console
 from rich.prompt import Prompt, Confirm
 from rich.text import Text
 from rich.style import Style
+from core.config_manager import save_config
 
 console = Console()
 
@@ -45,7 +48,6 @@ def tela_abertura():
     console.print("\n" + "─" * 50, style="dim")
     console.print("[bold cyan]⚙️  Configuration Assistant[/bold cyan]\n")
 
-
 def detectar_interfaces_up():
     resultado = subprocess.run(['ip', 'link', 'show'], capture_output=True, text=True)
     linhas = resultado.stdout.splitlines()
@@ -57,14 +59,12 @@ def detectar_interfaces_up():
                 interfaces.append(nome)
     return interfaces
 
-
 def verificar_dependencias():
     deps = {"tshark": False, "iptables": False}
     for cmd in deps:
         if subprocess.run(['which', cmd], capture_output=True).returncode == 0:
             deps[cmd] = True
     return deps
-
 
 def testar_captura(interface):
     try:
@@ -82,10 +82,8 @@ def testar_captura(interface):
         console.print(f"  [yellow]! Capture timed out after 15 seconds on {interface}. Interface may be idle.[/yellow]")
         return False
 
-
 def verificar_sudo():
     return subprocess.run(['sudo', '-n', 'true'], capture_output=True).returncode == 0
-
 
 def wizard():
     try:
@@ -159,10 +157,12 @@ def wizard():
 
         console.print("\n[bold green]✅ Setup completed successfully![/bold green]")
         console.print("MyFi is ready to monitor and protect your network.", style="white")
+        save_config({'interface':iface,'dependencies_ok': all(deps.values())})
 
     except KeyboardInterrupt:
         console.print("\n[yellow]⚠️ Setup interrupted by user. Exiting gracefully.[/yellow]")
         sys.exit(0)
+
 
 if __name__ == "__main__":
     wizard()
