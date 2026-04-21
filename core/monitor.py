@@ -12,8 +12,7 @@ from rich.table import Table
 from rich.layout import Layout
 from rich.text import Text
 from rich import box
-
-# Importações internas (ajuste os caminhos conforme sua estrutura)
+from core.config_manager import load_config
 from core.Scanner import reverse_dns
 from db.database import save_to_db
 from alert_telegram import send_telegram_message
@@ -77,7 +76,10 @@ def format_bytes(num_bytes):
         num_bytes /= 1024.0
     return f"{num_bytes:.2f} TB"
 
-def run_monitor(interface='wlan0', threshold_mb=1):
+def run_monitor(interface= None, threshold_mb=1):
+    if interface is None:
+        config = load_config()
+        interface = config.get('interface', 'wlan0')
 
     # Configurações
     threshold_bytes = threshold_mb * 1024 * 1024
@@ -205,8 +207,10 @@ def run_monitor(interface='wlan0', threshold_mb=1):
 def main():
     """Entrada quando chamado via 'myfi monitor'."""
     import argparse
+    config = load_config()
+    default_interface = config.get('interface', 'wlan0')
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument('--interface', '-i', default='wlan0', help='Interface de rede')
+    parser.add_argument('--interface', '-i', default=default_interface, help='Interface de rede')
     parser.add_argument('--threshold', '-t', type=int, default=1, help='Limite em MB para alerta')
     args, _ = parser.parse_known_args()
     
