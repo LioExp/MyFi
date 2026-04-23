@@ -1,0 +1,9 @@
+certifi==2026.2.25
+charset-normalizer==3.4.7
+idna==3.11
+markdown-it-py==4.0.0
+mdurl==0.1.2
+Pygments==2.20.0
+requests==2.33.1
+rich==14.3.3
+urllib3==2.6.3
