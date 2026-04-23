@@ -1,13 +1,13 @@
+import logging
 import sys
 import argparse
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
-from core.config_manager import is_configured
-from ui.cli.setup_wizard import wizard
-from core.Scanner import main as scan_main
-
+from src.myfi.core.config_manager import is_configured
+from src.myfi.ui.cli.setup_wizard import wizard
+from src.myfi.core.Scanner import main as scan_main
 console = Console()
 
 def show_help():
@@ -66,9 +66,21 @@ def main():
         action="store_true",
         help="Show this help message"
     )
+
+    verbosity = parser.add_mutually_exclusive_group()
+    verbosity.add_argument('-q', action='store_true', help='Quiet mode')
+    verbosity.add_argument('-v', action='store_true', help='Verbose mode')
+    verbosity.add_argument('-vv', action='store_true', help='Very verbose mode')
     
     try:
         args, unknown = parser.parse_known_args()
+        if args.q:
+            logging.basicConfig(level=logging.WARNING)
+        elif args.vv:
+            logging.basicConfig(level=logging.DEBUG)
+        else:
+            logging.basicConfig(level=logging.INFO)
+
     except SystemExit:
         # Se o argparse tentar sair, mostramos nossa ajuda e saímos
         show_help()
