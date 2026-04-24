@@ -6,109 +6,119 @@
 [![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/lioexp/myfi/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**MyFi** é uma plataforma modular de observabilidade e automação para redes locais de pequena escala.  
-Fornece descoberta de dispositivos, monitorização de tráfego, limites de consumo, alertas via Telegram e uma arquitetura extensível através de **Chunks**.
+> 📖 Read this in [Portuguese](README.pt.md).
 
-
----
-
-## ✨ Funcionalidades implementadas
-
-### v0.5 – Assistente de Configuração
-- Deteção automática de interfaces de rede ativas (ex: `wlan0`, `eth0`)
-- Verificação de dependências opcionais (`tshark`, `iptables`)
-- Teste de captura de tráfego
-- Guarda configuração em `~/.myfi/config.json`
-
-### v1.0 – Scanner de Rede
-- Lista dispositivos na rede local usando `arp -a`
-- Mostra **Nome**, **IP**, **MAC** e **Interface** numa tabela colorida com `rich`
-- Registo automático em base de dados SQLite com timestamp
-- Integração com o assistente (usa a interface configurada)
-
-### v2.0 – Monitorização de Tráfego e Alertas
-- Mede o tráfego de dados por dispositivo (bytes enviados/recebidos) em intervalos regulares
-- Permite definir limites de consumo no ficheiro de configuração
-- Envia alertas via Telegram quando um dispositivo atinge o limite
-- Base de dados SQLite para armazenar histórico de dispositivos
-- CLI com níveis de verbosidade (`-q`, `-v`, `-vv`)
-- Captura de tráfego com `tshark` (opcional)
+**MyFi** is a modular observability and automation platform for small-scale local networks.
+It provides device discovery, traffic monitoring, usage limits, Telegram alerts, and an extensible architecture through **Chunks**.
 
 ---
 
-## 📦 Instalação
+## ✨ Features
+
+### v0.5 – Setup Wizard
+
+* Automatic detection of active network interfaces (e.g., `wlan0`, `eth0`)
+* Optional dependency checks (`tshark`, `iptables`)
+* Traffic capture test
+* Saves configuration to `~/.myfi/config.json`
+
+### v1.0 – Network Scanner
+
+* Lists devices on the local network using `arp -a`
+* Displays **Name**, **IP**, **MAC**, and **Interface** in a colored table using `rich`
+* Automatically logs results to a SQLite database with timestamps
+* Integrated with the setup wizard (uses the configured interface)
+
+### v2.0 – Traffic Monitoring & Alerts
+
+* Measures per-device traffic (bytes sent/received) at regular intervals
+* Allows setting usage limits in the configuration file
+* Sends Telegram alerts when a device reaches its limit
+* SQLite database to store device history
+* CLI with verbosity levels (`-q`, `-v`, `-vv`)
+* Traffic capture via `tshark` (optional)
+
+---
+
+## 📦 Installation
 
 ```bash
-# Clonar o repositório
+# Clone the repository
 git clone https://github.com/lioexp/myfi.git
 cd myfi
 
-# Criar e ativar ambiente virtual (recomendado)
+# Create and activate a virtual environment (recommended)
 python -m venv venv
 source venv/bin/activate   # Linux/macOS
 # venv\Scripts\activate    # Windows
 
-# Instalar dependências
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-**Dependências principais:**
-- `rich` – formatação colorida no terminal
-- `requests` – para alertas Telegram
-- `tshark` (opcional) – para captura de tráfego detalhada
-- bibliotecas padrão: `subprocess`, `socket`, `json`, `sqlite3`
+**Main dependencies:**
+
+* `rich` – colored terminal formatting
+* `requests` – for Telegram alerts
+* `tshark` (optional) – for detailed traffic capture
+* standard libraries: `subprocess`, `socket`, `json`, `sqlite3`
 
 ---
 
-## 🚀 Como usar
+## 🚀 Usage
 
-### 1. Configurar o MyFi (primeira execução)
+### 1. Setup MyFi (first run)
 
 ```bash
 python main.py setup
 ```
 
-O assistente irá:
-- Listar as interfaces de rede ativas
-- Pedir que escolha a interface ligada à sua rede
-- Verificar dependências
-- Guardar a configuração em `~/.myfi/config.json`
+The wizard will:
 
-### 2. Executar o scanner de rede
+* List active network interfaces
+* Ask you to select the interface connected to your network
+* Check dependencies
+* Save configuration to `~/.myfi/config.json`
+
+---
+
+### 2. Run the network scanner
 
 ```bash
 python main.py
 ```
 
-**Exemplo de saída (CLI com `rich`):**
+**Example output (CLI with `rich`):**
 
-![Tabela do scanner MyFi](https://github.com/user-attachments/assets/6eaf6b9a-0219-422a-91fc-2da4ce382cc1)
+![MyFi scanner table](https://github.com/user-attachments/assets/6eaf6b9a-0219-422a-91fc-2da4ce382cc1)
 
-Os resultados são também guardados em  (`logs/scan.txt`).
-
-### 3. Alertas Telegram (se configurados)
-
-Se definiu um token e chat ID no `config/config.json`, o MyFi envia alertas quando um dispositivo atinge o limite de consumo definido nesse ficheiro.
+Results are also saved to (`logs/scan.txt`).
 
 ---
 
-## 📁 Estrutura do projeto
+### 3. Telegram Alerts (if configured)
+
+If you set a token and chat ID in `config/config.json`, MyFi will send alerts when a device reaches the usage limit defined in that file.
+
+---
+
+## 📁 Project Structure
 
 ```
-myfi/                  # Pasta raiz do repositório
+myfi/                  # Root folder
 ├── src/
-│   └── myfi/                  # O pacote Python
-│       ├── core/              # Lógica de negócio
+│   └── myfi/          # Python package
+│       ├── core/      # Business logic
 │       │   ├── config_manager.py
 │       │   ├── scanner.py
 │       │   ├── monitor.py
 │       ├── ui/
 │       │   └── cli/
 │       │       └── setup_wizard.py
-│       ├── db/                # Base de dados
-│       └── data/              # SQLite (myfi.db)
-├── config/                    # Configurações sensíveis (ex: token Telegram)
-├── logs/                      # Ficheiros de log
+│       ├── db/        # Database layer
+│       └── data/      # SQLite (myfi.db)
+├── config/            # Sensitive configs (e.g., Telegram token)
+├── logs/              # Log files
 ├── tests/
 ├── docs/
 ├── main.py
@@ -117,31 +127,33 @@ myfi/                  # Pasta raiz do repositório
 ├── CONTRIBUTING.md
 └── LICENSE
 ```
+
 ---
 
 ## 🗺️ Roadmap
 
-- ✅ **v0.5** – Wizard de configuração
-- ✅ **v1.0** – Scanner ARP com rich, DNS reverso, logging, GitHub
-- ✅ **v2.0** – Monitor de tráfego, limites, alertas Telegram, SQLite, verbosidade
-- ⏳ **v3.0** – Sistema de Chunks (automação modular)
-- ⏳ **v4.0** – Deteção de anomalias com IA (Isolation Forest)
-- ⏳ **v5.0** – Interface gráfica (web app ou desktop)
+* ✅ **v0.5** – Setup wizard
+* ✅ **v1.0** – ARP scanner with rich, reverse DNS, logging, GitHub
+* ✅ **v2.0** – Traffic monitor, limits, Telegram alerts, SQLite, verbosity
+* ⏳ **v3.0** – Chunk system (modular automation)
+* ⏳ **v4.0** – AI-based anomaly detection (Isolation Forest)
+* ⏳ **v5.0** – Graphical interface (web app or desktop)
 
 ---
 
-## 🤝 Contribuição
+## 🤝 Contributing
 
-Contribuições são bem-vindas! Consulte o ficheiro [CONTRIBUTING.md](./CONTRIBUTING.md) e siga os padrões de commit semântico.
-
----
-
-## 📄 Licença
-
-MIT © [LioExp](https://github.com/lioexp).
+Contributions are welcome! Check the [CONTRIBUTING.md](./CONTRIBUTING.md) file and follow semantic commit standards.
 
 ---
 
-## 🙌 Agradecimentos
+## 📄 License
 
-Projeto desenvolvido como parte da jornada de aprendizagem em redes e segurança, com foco em autonomia.
+MIT © [LioExp](https://github.com/lioexp)
+
+---
+
+## 🙌 Acknowledgments
+
+This project was developed as part of a learning journey in networking and security, with a focus on autonomy.
+
