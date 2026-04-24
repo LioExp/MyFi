@@ -3,28 +3,36 @@
 <img width="800" height="343" alt="image" src="https://github.com/user-attachments/assets/fd98e5ca-075a-482c-846e-ba78295e42a2" />
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/lioexp/myfi/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**MyFi** é um monitor de redes inteligente focado em MiFi (roteadores portáteis) e redes locais.  
-Desenvolvido em Python, fornece descoberta de dispositivos (IP, MAC, hostname), logging, e uma arquitetura modular para futuras funcionalidades como controle de banda, automação e deteção de anomalias com IA.
+**MyFi** é uma plataforma modular de observabilidade e automação para redes locais de pequena escala.  
+Fornece descoberta de dispositivos, monitorização de tráfego, limites de consumo, alertas via Telegram e uma arquitetura extensível através de **Chunks**.
 
-> ⚠️ **Estado atual:** v1.0 em desenvolvimento – scanner de rede funcional com interface CLI  (`rich`).
 
 ---
 
-## ✨ Funcionalidades já implementadas
+## ✨ Funcionalidades implementadas
 
 ### v0.5 – Assistente de Configuração
 - Deteção automática de interfaces de rede ativas (ex: `wlan0`, `eth0`)
 - Verificação de dependências opcionais (`tshark`, `iptables`)
-- Teste de captura de tráfego (para funcionalidades futuras)
+- Teste de captura de tráfego
 - Guarda configuração em `~/.myfi/config.json`
 
-### v1.0 – Scanner de Rede (parcial)
+### v1.0 – Scanner de Rede
 - Lista dispositivos na rede local usando `arp -a`
-- Mostra **Nome**, **IP**, **MAC** e **Interface** numa tabela com `rich`
-- Registo automático em `logs/scan.txt` com timestamp
+- Mostra **Nome**, **IP**, **MAC** e **Interface** numa tabela colorida com `rich`
+- Registo automático em base de dados SQLite com timestamp
 - Integração com o assistente (usa a interface configurada)
+
+### v2.0 – Monitorização de Tráfego e Alertas
+- Mede o tráfego de dados por dispositivo (bytes enviados/recebidos) em intervalos regulares
+- Permite definir limites de consumo no ficheiro de configuração
+- Envia alertas via Telegram quando um dispositivo atinge o limite
+- Base de dados SQLite para armazenar histórico de dispositivos
+- CLI com níveis de verbosidade (`-q`, `-v`, `-vv`)
+- Captura de tráfego com `tshark` (opcional)
 
 ---
 
@@ -46,7 +54,8 @@ pip install -r requirements.txt
 
 **Dependências principais:**
 - `rich` – formatação colorida no terminal
-- `requests` – para alertas Telegram (futuro)
+- `requests` – para alertas Telegram
+- `tshark` (opcional) – para captura de tráfego detalhada
 - bibliotecas padrão: `subprocess`, `socket`, `json`, `sqlite3`
 
 ---
@@ -61,53 +70,64 @@ python main.py setup
 
 O assistente irá:
 - Listar as interfaces de rede ativas
-- Pedir que escolha a interface ligada ao seu MiFi
-- Verificar dependências (não obrigatórias para o scanner)
-- Testar a captura de tráfego (se `tshark` estiver instalado)
+- Pedir que escolha a interface ligada à sua rede
+- Verificar dependências
 - Guardar a configuração em `~/.myfi/config.json`
 
 ### 2. Executar o scanner de rede
 
 ```bash
-python main.py 
+python main.py
 ```
 
 **Exemplo de saída (CLI com `rich`):**
 
 ![Tabela do scanner MyFi](https://github.com/user-attachments/assets/6eaf6b9a-0219-422a-91fc-2da4ce382cc1)
 
-Os resultados são também guardados em `logs/myfi.db`.
+Os resultados são também guardados em  (`logs/scan.txt`).
+
+### 3. Alertas Telegram (se configurados)
+
+Se definiu um token e chat ID no `config/config.json`, o MyFi envia alertas quando um dispositivo atinge o limite de consumo definido nesse ficheiro.
 
 ---
 
 ## 📁 Estrutura do projeto
 
 ```
-myfi/
-├── core/
-│   ├── config_manager.py   # leitura/escrita da configuração
-│   ├── Scanner.py          # lógica do scanner de rede
-│   └── ...                 # futuros módulos (monitor, chunks, IA)
-├── ui/
-│   └── cli/
-│       └── setup_wizard.py # assistente de configuração
-├── config/                 # configurações sensíveis (ex: token Telegram)
-├── logs/                   # ficheiros de log (scan.txt)
-├── data/                   # base de dados SQLite (futuro)
-├── main.py                 # ponto de entrada (comandos: setup, scan)
+myfi/                  # Pasta raiz do repositório
+├── src/
+│   └── myfi/                  # O pacote Python
+│       ├── core/              # Lógica de negócio
+│       │   ├── config_manager.py
+│       │   ├── scanner.py
+│       │   ├── monitor.py
+│       ├── ui/
+│       │   └── cli/
+│       │       └── setup_wizard.py
+│       ├── db/                # Base de dados
+│       └── data/              # SQLite (myfi.db)
+├── config/                    # Configurações sensíveis (ex: token Telegram)
+├── logs/                      # Ficheiros de log
+├── tests/
+├── docs/
+├── main.py
 ├── requirements.txt
-└── README.md
+├── README.md
+├── CONTRIBUTING.md
+└── LICENSE
 ```
-
 ---
 
-## 🗺️ Roadmap (versões futuras)
+## 🗺️ Roadmap
 
-- **v1.0** (MVP) – scanner completo + logging + CLI 
-- **v2.0** – monitorização de tráfego com `tshark`, limites por dispositivo, alertas (Telegram/email)
-- **v3.0** – sistema de chunks (automação modular)
-- **v4.0** – deteção de anomalias com IA (Isolation Forest)
-- **v5.0** – interface gráfica (PySide6 ou web local)
+- ✅ **v0.5** – Wizard de configuração
+- ✅ **v1.0** – Scanner ARP com rich, DNS reverso, logging, GitHub
+- ✅ **v2.0** – Monitor de tráfego, limites, alertas Telegram, SQLite, verbosidade
+- ⏳ **v3.0** – Sistema de Chunks (automação modular)
+- ⏳ **v4.0** – Deteção de anomalias com IA (Isolation Forest)
+- ⏳ **v5.0** – Interface gráfica (web app ou desktop)
+
 ---
 
 ## 🤝 Contribuição
@@ -121,7 +141,7 @@ Contribuições são bem-vindas! Consulte o ficheiro [CONTRIBUTING.md](./CONTRIB
 MIT © [LioExp](https://github.com/lioexp).
 
 ---
+
 ## 🙌 Agradecimentos
 
 Projeto desenvolvido como parte da jornada de aprendizagem em redes e segurança, com foco em autonomia.
-
