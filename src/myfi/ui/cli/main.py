@@ -131,10 +131,20 @@ def cmd_monitor(args):
         console.print(f"[green]▶ Starting monitor...[/green]")
         if live:
             console.print("[yellow]Live mode (1s interval)[/yellow]")
-            monitor_core.start(live_mode=True, interval=1)
+            interval = 1
         else:
             console.print("[dim]Low Power mode (5 min interval)[/dim]")
-            monitor_core.start(live_mode=False, interval=300)
+            interval = 300
+
+        # Iniciar com feedback visual usando rich.status
+        with console.status("Aguardando primeira captura...") as status:
+            def update_feedback(recv, sent, session_recv, session_sent):
+                status.update(
+                    f"[bold]↓[/bold] {_format_bytes(recv)}  [bold]↑[/bold] {_format_bytes(sent)}"
+                    f"  │  Sessão: [bold]↓[/bold] {_format_bytes(session_recv)}  [bold]↑[/bold] {_format_bytes(session_sent)}"
+                )
+            monitor_core.start(live_mode=live, interval=interval, status_callback=update_feedback)
+
     elif args.monitor_command == 'stop':
         monitor_core.stop()
         console.print("[red]⏹️ Monitor stopped.[/red]")
@@ -147,6 +157,7 @@ def cmd_monitor(args):
     else:
         console.print("[red]✗ Missing monitor subcommand (start/stop/report).[/red]")
 
+    
 def cmd_limit(args):
     """Comando limit (set/show/remove)."""
     from myfi.db.database import Database
