@@ -15,6 +15,13 @@ console = Console()
 class SetupWizard:
     """Assistente de configuração inicial do MyFi."""
 
+    # Mapeamento de tipos de dispositivo disponíveis
+    DEVICE_TYPES = {
+        "1": {"key": "local_pc", "name": "💻 Este PC / Servidor Local", "desc": "Monitoriza apenas o tráfego deste computador."},
+        "2": {"key": "hotspot", "name": "📱 Hotspot (MiFi / Telefone)", "desc": "Recolhe dados de todos os dispositivos ligados ao hotspot."},
+        "3": {"key": "router", "name": "🌐 Router de Casa", "desc": "Recolhe dados de todos os dispositivos na rede local (via router)."},
+    }
+
     def __init__(self, config: ConfigManager = None):
         if config is None:
             config = ConfigManager()
@@ -99,7 +106,7 @@ class SetupWizard:
         return subprocess.run(['sudo', '-n', 'true'], capture_output=True).returncode == 0
 
     def _confirm(self, message: str, default: bool = True) -> bool:
-        """Confirmação personalizada com estilo Rich (substitui Confirm.ask)."""
+        """Confirmação personalizada com estilo Rich."""
         default_str = "Y" if default else "N"
         prompt_text = f"[bold yellow]{message} [y/n][/bold yellow]"
 
@@ -116,6 +123,53 @@ class SetupWizard:
             except Exception as e:
                 logger.error(f"Erro inesperado na confirmação: {e}")
                 return default
+
+    def _escolher_tipo_dispositivo(self):
+        """Pergunta ao utilizador qual o tipo de dispositivo que está a gerir."""
+        console.print("[bold]🔌 Como está a partilhar ou fornecer a internet?[/bold]\n")
+        for key, info in self.DEVICE_TYPES.items():
+            console.print(f"  {key}. {info['name']}")
+            console.print(f"     [dim]{info['desc']}[/dim]\n")
+
+        escolha = Prompt.ask(
+            "[bold]Escolha uma opção[/bold]",
+            choices=list(self.DEVICE_TYPES.keys()),
+            default="1"
+        )
+        device_type = self.DEVICE_TYPES[escolha]["key"]
+        console.print(f"[green]✓ Selecionado: {self.DEVICE_TYPES[escolha]['name']}[/green]\n")
+        return device_type
+
+    def _configurar_hotspot(self):
+        """Passo específico para o modo Hotspot (MiFi/Telefone)."""
+        console.print("[bold]📡 Configuração do Hotspot[/bold]")
+        console.print("O MyFi precisa de aceder à página de administração do seu hotspot para recolher dados.")
+
+        # URL do hotspot
+        hotspot_url = Prompt.ask("Endereço do hotspot", default="http://192.168.1.1")
+
+        # Modelo (podemos expandir no futuro)
+        console.print("\nModelos suportados (pode escolher 'genérico' para tentativa automática):")
+        modelos = ["Huawei_E5576", "ZTE_MF927U", "genérico"]
+        for i, modelo in enumerate(modelos, 1):
+            console.print(f"  {i}. {modelo}")
+        modelo_escolha = Prompt.ask("Escolha o modelo", choices=[str(i) for i in range(1, len(modelos)+1)], default="3")
+        modelo = modelos[int(modelo_escolha)-1]
+
+        # Credenciais
+        console.print("\nCredenciais de acesso (admin):")
+        username = Prompt.ask("Nome de utilizador", default="admin")
+        password = getpass.getpass("Palavra-passe (não será exibida): ")
+
+        # Guardar
+        self.config.set('device_type', 'hotspot')
+        self.config.set('hotspot_url', hotspot_url)
+        self.config.set('hotspot_model', modelo)
+        self.config.set('hotspot_username', username)
+        self.config.set('hotspot_password', password)
+
+        # Teste rápido (opcional, podemos implementar uma validação futura)
+        console.print("[dim]ℹ️ A validação da ligação ao hotspot será feita durante a monitorização.[/dim]")
 
     def _configurar_telegram(self):
         """Passo opcional: configurar alertas via Telegram (entrada oculta)."""
@@ -173,7 +227,11 @@ class SetupWizard:
 
             self._mostrar_tela_abertura()
 
-            # 1. Detetar interfaces
+            # 1. Escolher o tipo de dispositivo
+            device_type = self._escolher_tipo_dispositivo()
+            self.config.set('device_type', device_type)
+
+            # 2. Detetar interfaces (comum a todos)
             with console.status("[bold cyan]Detecting network interfaces...[/bold cyan]", spinner="dots"):
                 interfaces = self.detectar_interfaces_up()
 
@@ -194,60 +252,67 @@ class SetupWizard:
             iface = interfaces[int(escolha)-1]
             console.print(f"[green]✓ Selected: {iface}[/green]\n")
 
-            # 2. Verificar dependências
-            console.print("[bold]📦 Checking dependencies...[/bold]")
-            with console.status("[bold cyan]Checking for tshark and iptables...[/bold cyan]", spinner="dots"):
-                deps = self.verificar_dependencias()
-
-            for dep, installed in deps.items():
-                if installed:
-                    console.print(f"  [green]✓[/green] {dep}")
+            # 3. Verificar dependências (tshark é necessário para modo PC)
+            deps_ok = True
+            if device_type == "local_pc":
+                console.print("[bold]📦 Checking dependencies...[/bold]")
+                with console.status("[bold cyan]Checking for tshark...[/bold cyan]", spinner="dots"):
+                    deps = self.verificar_dependencias()
+                if deps["tshark"]:
+                    console.print("  [green]✓[/green] tshark")
                 else:
-                    console.print(f"  [red]✗[/red] {dep}")
+                    console.print("  [red]✗[/red] tshark (necessário para monitorização local)")
+                    deps_ok = False
 
-            if not all(deps.values()):
-                console.print("\n[yellow]! Some dependencies are missing. Install with:[/yellow]")
-                console.print("  [dim]$ sudo apt install tshark iptables[/dim]")
-                if not self._confirm("Continuar mesmo assim?", default=False):
-                    console.print("[yellow]Exiting setup.[/yellow]")
-                    return
+                if not deps_ok:
+                    console.print("\n[yellow]! tshark is missing. Install with:[/yellow]")
+                    console.print("  [dim]$ sudo apt install tshark[/dim]")
+                    if not self._confirm("Continuar mesmo assim?", default=False):
+                        console.print("[yellow]Exiting setup.[/yellow]")
+                        return
+                    console.print()
+
+            # 4. Passos específicos do tipo de dispositivo
+            if device_type == "hotspot":
+                self._configurar_hotspot()
+            elif device_type == "router":
+                console.print("[yellow]⚠️ O modo Router ainda está em desenvolvimento. Os dados serão limitados por enquanto.[/yellow]")
+                self.config.set('device_type', 'local_pc')  # fallback temporário
+
+            # 5. Verificar acesso sudo (necessário para captura local)
+            if device_type == "local_pc":
+                if not self.verificar_sudo():
+                    console.print("[yellow]🔐 Administrator privileges required.[/yellow]")
+                    console.print("[dim]Please enter your password when prompted.[/dim]")
+                    while True:
+                        resultado = subprocess.run(['sudo', '-v'], check=False)
+                        if resultado.returncode == 0:
+                            console.print("[green]✓ Sudo access granted.[/green]")
+                            break
+                        else:
+                            console.print("[red]✗ Authentication failed.[/red]")
+                            if not self._confirm("Tentar novamente?", default=True):
+                                console.print("[yellow]⚠️ Sudo access is required to continue. Exiting setup.[/yellow]")
+                                return
+                else:
+                    console.print("[green]✓ Sudo access already active.[/green]")
                 console.print()
 
-            # 3. Verificar acesso sudo
-            if not self.verificar_sudo():
-                console.print("[yellow]🔐 Administrator privileges required.[/yellow]")
-                console.print("[dim]Please enter your password when prompted.[/dim]")
-                while True:
-                    resultado = subprocess.run(['sudo', '-v'], check=False)
-                    if resultado.returncode == 0:
-                        console.print("[green]✓ Sudo access granted.[/green]")
-                        break
-                    else:
-                        console.print("[red]✗ Authentication failed.[/red]")
-                        if not self._confirm("Tentar novamente?", default=True):
-                            console.print("[yellow]⚠️ Sudo access is required to continue. Exiting setup.[/yellow]")
-                            return
-            else:
-                console.print("[green]✓ Sudo access already active.[/green]")
-            console.print()
+                # Teste de captura apenas para modo PC
+                console.print(f"[bold]📡 Testing packet capture on [cyan]{iface}[/cyan]...[/bold]")
+                captura_ok = self.testar_captura(iface)
+                if not captura_ok:
+                    console.print("[red]✗ Packet capture test failed. Check interface and permissions.[/red]")
+                    return
+                console.print("[green]✓ Packet capture test passed successfully![/green]")
 
-            # 4. Teste de captura
-            console.print(f"[bold]📡 Testing packet capture on [cyan]{iface}[/cyan]...[/bold]")
-            captura_ok = self.testar_captura(iface)
-
-            if not captura_ok:
-                console.print("[red]✗ Packet capture test failed. Check interface and permissions.[/red]")
-                return
-
-            console.print("[green]✓ Packet capture test passed successfully![/green]")
-
-            # 5. Guardar configuração base
+            # 6. Guardar configuração base (comum)
             self.config.set('interface', iface)
-            self.config.set('dependencies_ok', all(deps.values()))
+            self.config.set('dependencies_ok', deps_ok)
 
             console.print("\n[bold green]✓ Configuração de rede concluída![/bold green]")
 
-            # 6. Configurar Telegram
+            # 7. Configurar Telegram (opcional)
             self._configurar_telegram()
 
             # Único save ao terminar todas as etapas
@@ -255,10 +320,9 @@ class SetupWizard:
 
             console.print("\n[bold green]✅ Setup concluído com sucesso![/bold green]")
             console.print("MyFi está pronto para monitorizar e proteger a sua rede.", style="white")
-            logger.info(f"Setup concluído. Interface: {iface}")
+            logger.info(f"Setup concluído. Interface: {iface}, Tipo: {device_type}")
 
         finally:
-            # Restaurar o nível original do logger, aconteça o que acontecer
             config_logger.setLevel(original_level)
 
 
