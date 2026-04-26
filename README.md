@@ -8,19 +8,20 @@
 
 > 📖 Read this in [Portuguese](README.pt.md)
 
-**MyFi** is a modular observability and automation platform for small local networks.
-It focuses on device visibility, traffic monitoring, and real-time alerts — with an extensible architecture built around **Chunks**.
+**MyFi** is a modular observability and automation platform for small local networks.  
+It discovers devices, monitors traffic, enforces usage limits, and sends real‑time alerts — with an extensible architecture built around **Chunks**.
 
 ---
 
 ## ✨ Features
 
-* Automatic network interface detection and setup
+* Interactive setup wizard (interface detection, device type, Telegram credentials)
 * Local network device discovery (IP, MAC, interface)
-* Per-device traffic monitoring
-* Usage limits with real-time Telegram alerts
-* Persistent storage using SQLite
-* Clean CLI with verbosity levels
+* Per‑device traffic monitoring (live or low‑power modes)
+* Configurable usage limits with Telegram alerts
+* Limit management via CLI (`myfi limit set/show/remove`)
+* SQLite persistence for devices, traffic logs, and limits
+* Clean CLI with verbosity levels (`-q`, `-v`, `-vv`)
 
 ---
 
@@ -47,11 +48,10 @@ pip install -r requirements.txt
 python main.py setup
 ```
 
-* Select your network interface
-* Validate environment
-* Save configuration
-
----
+The wizard will ask you:
+* Which kind of device you are using (local PC, hotspot, router)
+* Network interface to monitor
+* Telegram bot credentials (optional)
 
 ### 2. Scan your network
 
@@ -61,17 +61,24 @@ python main.py
 
 ![MyFi scanner](https://github.com/user-attachments/assets/6eaf6b9a-0219-422a-91fc-2da4ce382cc1)
 
----
+### 3. Start traffic monitoring
 
-### 3. Enable alerts
-
-Configure your Telegram token and chat ID in:
-
+```bash
+myfi monitor start            # low‑power mode (5 min interval)
+myfi monitor start --live     # real‑time (2 s capture window)
+myfi monitor stop
+myfi monitor report
 ```
-config/config.json
+
+### 4. Manage usage limits
+
+```bash
+myfi limit set --mac aa:bb:cc:dd:ee:ff --daily 200
+myfi limit show
+myfi limit remove --mac aa:bb:cc:dd:ee:ff
 ```
 
-MyFi will notify you when a device exceeds its usage limit.
+When a device reaches 80 % of its limit, MyFi sends a Telegram warning; at 100 % it sends a critical alert and stops the device.
 
 ---
 
@@ -79,7 +86,7 @@ MyFi will notify you when a device exceeds its usage limit.
 
 * ✅ v0.5 – Setup wizard
 * ✅ v1.0 – Network scanner
-* ✅ v2.0 – Traffic monitoring & alerts
+* ✅ v2.0 – Traffic monitoring, limits, and alerts
 * ⏳ v3.0 – Chunk system (modular automation)
 * ⏳ v4.0 – AI anomaly detection
 * ⏳ v5.0 – Graphical interface
@@ -100,4 +107,4 @@ MIT © [LioExp](https://github.com/lioexp)
 
 ## 🙌 Notes
 
-Built as part of a hands-on journey into networking and security.
+Built as part of a hands‑on journey into networking and security.
