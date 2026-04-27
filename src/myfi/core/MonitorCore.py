@@ -21,7 +21,7 @@ class MonitorCore:
 
         self.interface = config.get('interface', 'wlan0')
         self.my_ip = self._get_ip_from_interface(self.interface)
-        self.my_mac = self._get_mac_from_interface(self.interface)  # <- NOVO
+        self.my_mac = self._get_mac_from_interface(self.interface) 
 
         self.running = False
         self.stop_event = Event()
