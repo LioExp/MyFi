@@ -29,13 +29,10 @@ It discovers devices, monitors traffic, enforces usage limits, and sends real‑
 
 ```bash
 git clone https://github.com/lioexp/myfi.git
-cd myfi
 
-python -m venv venv
-source venv/bin/activate   # Linux/macOS
-# venv\Scripts\activate    # Windows
+cd myfi/ && make setup
 
-pip install -r requirements.txt
+myfi setup
 ```
 
 ---
