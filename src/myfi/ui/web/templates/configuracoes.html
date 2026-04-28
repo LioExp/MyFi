@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyFi — Configurações</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="app">
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="icon-btn" aria-label="Alternar menu" onclick="toggleSidebar()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="topbar-logo" onclick="window.location='/'">
+        <div class="logo-icon">
+          <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="MyFi Logo">
+        </div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="online-badge">
+        <span class="status-dot-wrap"><span class="status-ping"></span><span class="status-dot"></span></span>
+        Online
+      </div>
+    </div>
+  </header>
+
+  <div class="body-wrap">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <nav>
+        <span class="sidebar-label">Navegação</span>
+        <a href="/" class="nav-item">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="/dispositivos" class="nav-item">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
+          <span class="nav-label">Dispositivos</span>
+        </a>
+        <a href="/alertas" class="nav-item">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+          <span class="nav-label">Alertas</span>
+        </a>
+        <a href="/automacao" class="nav-item">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
+          <span class="nav-label">Automação</span>
+        </a>
+        <a href="/ia" class="nav-item">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 1 6 6c0 3-2 5-2 5H8s-2-2-2-5a6 6 0 0 1 6-6z"/><path d="M8 14s-.5 1-.5 2.5c0 1.5 1 2.5 4.5 2.5s4.5-1 4.5-2.5c0-1.5-.5-2.5-.5-2.5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg></span>
+          <span class="nav-label">IA</span>
+        </a>
+        <a href="/configuracoes" class="nav-item active">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+          <span class="nav-label">Configurações</span>
+        </a>
+      </nav>
+      <div class="sidebar-promo">
+        <div class="promo-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 1 6 6c0 3-2 5-2 5H8s-2-2-2-5a6 6 0 0 1 6-6z"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+          <span class="promo-title">MyFi IA</span>
+        </div>
+        <p class="promo-text">Otimize sua rede com sugestões automáticas.</p>
+      </div>
+    </aside>
+
+    <main>
+      <div class="page-inner">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Configurações</h1>
+            <p class="page-sub">Gerencie as preferências do MyFi</p>
+          </div>
+          <span class="version-badge">v2.0.0</span>
+        </div>
+
+        <div class="config-grid">
+          <!-- Coluna Esquerda -->
+          <div class="config-column">
+            <!-- Gerais -->
+            <div class="glass-panel config-section">
+              <div class="panel-top-line"></div>
+              <h2 class="config-section-title">1. Gerais</h2>
+
+              <div class="setting-row">
+                <span>Monitorização automática ao iniciar</span>
+                <label class="toggle-wrap">
+                  <input type="checkbox" class="toggle" checked onchange="saveSetting('auto_monitor', this.checked)">
+                </label>
+              </div>
+
+              <div class="setting-row stacked">
+                <span>Intervalo de monitorização (segundos)</span>
+                <input type="number" value="300" class="input-mono" onchange="saveSetting('monitor_interval', this.value)">
+              </div>
+
+              <div class="setting-row radio-row">
+                <span>Tema</span>
+                <div class="radio-options">
+                  <label class="radio-label">
+                    <input type="radio" name="theme" checked onchange="saveSetting('theme', 'dark')">
+                    <span class="custom-radio"></span> Modo escuro
+                  </label>
+                  <label class="radio-label">
+                    <input type="radio" name="theme" onchange="saveSetting('theme', 'light')">
+                    <span class="custom-radio"></span> Modo claro
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Rede -->
+            <div class="glass-panel config-section">
+              <div class="panel-top-line"></div>
+              <h2 class="config-section-title">2. Rede</h2>
+
+              <div class="setting-row stacked">
+                <span>Interface de rede</span>
+                <select class="input-mono" id="interface-select" onchange="saveSetting('interface', this.value)">
+                  <option>wlan0 (MiFi)</option>
+                  <option>eth0</option>
+                </select>
+              </div>
+
+              <div class="setting-row stacked">
+                <span>IP da rede local</span>
+                <input type="text" value="192.168.1.0/24" class="input-mono" readonly>
+              </div>
+
+              <button class="btn btn-primary w-100" onclick="window.location='/setup'">Reconfigurar rede</button>
+            </div>
+          </div>
+
+          <!-- Coluna Direita -->
+          <div class="config-column">
+            <!-- Alertas -->
+            <div class="glass-panel config-section">
+              <div class="panel-top-line"></div>
+              <h2 class="config-section-title">3. Alertas e Notificações</h2>
+
+              <div class="setting-row">
+                <span>Alertas por Telegram</span>
+                <label class="toggle-wrap">
+                  <input type="checkbox" class="toggle" id="telegram-toggle" onchange="saveSetting('telegram_enabled', this.checked)">
+                </label>
+              </div>
+
+              <div class="setting-row stacked">
+                <span>Token do bot</span>
+                <input type="password" value="••••••••" class="input-mono" id="telegram-token" disabled>
+              </div>
+
+              <div class="setting-row stacked">
+                <span>Chat ID</span>
+                <input type="text" value="6216035394" class="input-mono" id="telegram-chatid" disabled>
+              </div>
+
+              <div class="setting-row checkbox-row">
+                <label class="checkbox-label">
+                  <input type="checkbox" checked onchange="saveSetting('daily_summary', this.checked)">
+                  <span class="custom-checkbox"></span> Incluir resumo diário
+                </label>
+              </div>
+            </div>
+
+            <!-- IA -->
+            <div class="glass-panel config-section">
+              <div class="panel-top-line"></div>
+              <h2 class="config-section-title">4. IA (Deteção de Anomalias)</h2>
+
+              <div class="setting-row">
+                <span>Ativar IA</span>
+                <label class="toggle-wrap">
+                  <input type="checkbox" class="toggle" checked onchange="saveSetting('ia_enabled', this.checked)">
+                </label>
+              </div>
+
+              <div class="setting-row stacked">
+                <span>Modelo</span>
+                <select class="input-mono" onchange="saveSetting('ia_model', this.value)">
+                  <option>Isolation Forest</option>
+                  <option>Autoencoder</option>
+                </select>
+              </div>
+
+              <div class="setting-row stacked slider-row">
+                <div class="slider-header">
+                  <span>Sensibilidade</span>
+                  <span class="mono" id="sensitivity-value">0.5</span>
+                </div>
+                <input type="range" min="0" max="1" step="0.1" value="0.5" class="range-slider" id="sensitivity" oninput="updateSensitivity(this.value)">
+              </div>
+
+              <button class="btn btn-secondary w-100">Retreinar modelo</button>
+            </div>
+
+            <!-- Sistema -->
+            <div class="glass-panel config-section">
+              <div class="panel-top-line"></div>
+              <h2 class="config-section-title">5. Sistema</h2>
+              <p class="version-text">Versão do MyFi: <span class="mono">2.0.0</span></p>
+
+              <div class="btn-group">
+                <button class="btn btn-secondary" onclick="alert('Logs em logs/myfi.log')">Ver logs</button>
+                <button class="btn btn-secondary" onclick="exportConfig()">Exportar configurações</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='main.js') }}"></script>
+<script>
+  // ============== SIDEBAR PERSISTENCE ==============
+  if (localStorage.getItem('sidebar-collapsed') === 'true') {
+    document.getElementById('sidebar').classList.add('collapsed');
+  }
+  function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    sidebar.classList.toggle('collapsed');
+    localStorage.setItem('sidebar-collapsed', sidebar.classList.contains('collapsed'));
+  }
+
+  // ============== SENSITIVITY SLIDER ==============
+  function updateSensitivity(val) {
+    document.getElementById('sensitivity-value').textContent = parseFloat(val).toFixed(1);
+    saveSetting('sensitivity', val);
+  }
+
+  // ============== SAVE SETTINGS ==============
+  function saveSetting(key, value) {
+    console.log('Setting saved:', key, value);
+    // Futuro: POST para /api/config
+  }
+
+  function exportConfig() {
+    alert('Configuração exportada (placeholder).');
+  }
+</script>
+</body>
+</html>

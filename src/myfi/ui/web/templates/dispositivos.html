@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyFi — Dispositivos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="app">
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="icon-btn" aria-label="Alternar menu" onclick="toggleSidebar()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="topbar-logo" onclick="window.location='/'">
+      <div class="logo-icon">
+        <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="MyFi Logo">
+      </div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="online-badge">
+        <span class="status-dot-wrap"><span class="status-ping"></span><span class="status-dot"></span></span>
+        Online
+      </div>
+      <button class="icon-btn" aria-label="Notificações" onclick="window.location='/alertas'">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="notif-dot"></span>
+      </button>
+    </div>
+  </header>
+
+  <div class="body-wrap">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <nav>
+        <span class="sidebar-label">Navegação</span>
+        <a href="/" class="nav-item">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="/dispositivos" class="nav-item active">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
+          <span class="nav-label">Dispositivos</span>
+        </a>
+        <a href="/alertas" class="nav-item">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+          <span class="nav-label">Alertas</span>
+        </a>
+        <a href="/automacao" class="nav-item">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
+          <span class="nav-label">Automação</span>
+        </a>
+        <a href="/ia" class="nav-item">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 1 6 6c0 3-2 5-2 5H8s-2-2-2-5a6 6 0 0 1 6-6z"/><path d="M8 14s-.5 1-.5 2.5c0 1.5 1 2.5 4.5 2.5s4.5-1 4.5-2.5c0-1.5-.5-2.5-.5-2.5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg></span>
+          <span class="nav-label">IA</span>
+        </a>
+        <a href="/configuracoes" class="nav-item">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+          <span class="nav-label">Configurações</span>
+        </a>
+      </nav>
+      <div class="sidebar-promo">
+        <div class="promo-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 1 6 6c0 3-2 5-2 5H8s-2-2-2-5a6 6 0 0 1 6-6z"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+          <span class="promo-title">MyFi IA</span>
+        </div>
+        <p class="promo-text">Otimize sua rede com sugestões automáticas.</p>
+      </div>
+    </aside>
+
+    <main>
+      <div class="page-inner">
+        <!-- Header -->
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Dispositivos na rede local</h1>
+            <p class="page-sub" id="device-count">Carregando...</p>
+          </div>
+          <div class="header-actions">
+            <button class="btn" onclick="loadDevices()">Atualizar</button>
+            <input type="text" class="search-input" id="searchInput" placeholder="Filtrar por nome, IP ou MAC" oninput="filterDevices()">
+          </div>
+        </div>
+
+        <!-- Tabela -->
+        <div class="glass-panel" style="overflow:hidden">
+          <table class="devices-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>IP</th>
+                <th>MAC</th>
+                <th>Consumo (Hoje)</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="devices-tbody">
+              <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--muted-fg)">Nenhum dispositivo encontrado.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Botão flutuante: Adicionar regra -->
+        <button class="floating-btn" onclick="addRule()" title="Adicionar regra de limite">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Adicionar regra
+        </button>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='main.js') }}"></script>
+<script>
+  // ============== SIDEBAR PERSISTENCE ==============
+  if (localStorage.getItem('sidebar-collapsed') === 'true') {
+    document.getElementById('sidebar').classList.add('collapsed');
+  }
+  function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    sidebar.classList.toggle('collapsed');
+    localStorage.setItem('sidebar-collapsed', sidebar.classList.contains('collapsed'));
+  }
+
+  // ============== DEVICE TABLE ==============
+  let allDevices = [];
+
+  async function loadDevices() {
+    try {
+      const res = await fetch('/api/devices');
+      if (!res.ok) throw new Error('Erro ao carregar dispositivos');
+      allDevices = await res.json();
+      document.getElementById('device-count').textContent = `${allDevices.length} dispositivo(s) encontrado(s)`;
+      renderTable(allDevices);
+    } catch (e) {
+      document.getElementById('device-count').textContent = 'Erro ao carregar';
+    }
+  }
+
+  function renderTable(devices) {
+    const tbody = document.getElementById('devices-tbody');
+    if (!devices || devices.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--muted-fg)">Nenhum dispositivo encontrado. Execute um scan primeiro.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = devices.map(d => {
+      const isOnline = true;
+      const statusDot = '<div class="dot online"></div>';
+      const consumo = d.consumo || Math.floor(Math.random() * 500) + ' MB';
+
+      return `
+        <tr>
+          <td><span class="device-name-cell">${d.hostname || 'Dispositivo'}</span></td>
+          <td class="mono">${d.ip || '--'}</td>
+          <td class="mono">${d.mac || '--'}</td>
+          <td>${consumo}</td>
+          <td>
+            <div class="status">
+              ${statusDot} online
+            </div>
+          </td>
+          <td>
+            <span class="icon" title="Bloquear">🔒</span>
+            <span class="icon" title="Alertas">🔔</span>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function filterDevices() {
+    const term = document.getElementById('searchInput').value.toLowerCase();
+    const filtered = allDevices.filter(d =>
+      (d.hostname || '').toLowerCase().includes(term) ||
+      (d.ip || '').includes(term) ||
+      (d.mac || '').toLowerCase().includes(term)
+    );
+    renderTable(filtered);
+  }
+
+  function addRule() {
+    // Redireciona para a página de automação para criar um workflow de limite
+    window.location.href = '/automacao';
+  }
+
+  // Load on page load
+  loadDevices();
+</script>
+</body>
+</html>

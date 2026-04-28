@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyFi — Dashboard de Rede</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="app">
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <!-- BOTÃO DO MENU -->
+      <button class="icon-btn" id="toggleSidebar" aria-label="Alternar menu" onclick="toggleSidebar()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="topbar-logo" onclick="window.location='/'">
+        <div class="logo-icon">
+          <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="MyFi Logo">
+        </div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="online-badge">
+        <span class="status-dot-wrap"><span class="status-ping"></span><span class="status-dot"></span></span>
+        Online
+      </div>
+      <button class="icon-btn" aria-label="Notificações">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="notif-dot"></span>
+      </button>
+    </div>
+  </header>
+
+  <div class="body-wrap">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <nav>
+        <span class="sidebar-label">Navegação</span>
+        <a href="/" class="nav-item active">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="/dispositivos" class="nav-item">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
+          <span class="nav-label">Dispositivos</span>
+        </a>
+        <a href="/alertas" class="nav-item">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+          <span class="nav-label">Alertas</span>
+        </a>
+        <a href="/automacao" class="nav-item">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
+          <span class="nav-label">Automação</span>
+        </a>
+        <a href="/ia" class="nav-item">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 1 6 6c0 3-2 5-2 5H8s-2-2-2-5a6 6 0 0 1 6-6z"/><path d="M8 14s-.5 1-.5 2.5c0 1.5 1 2.5 4.5 2.5s4.5-1 4.5-2.5c0-1.5-.5-2.5-.5-2.5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg></span>
+          <span class="nav-label">IA</span>
+        </a>
+        <a href="/configuracoes" class="nav-item">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+          <span class="nav-label">Configurações</span>
+        </a>
+      </nav>
+      <div class="sidebar-promo">
+        <div class="promo-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 1 6 6c0 3-2 5-2 5H8s-2-2-2-5a6 6 0 0 1 6-6z"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+          <span class="promo-title">MyFi IA</span>
+        </div>
+        <p class="promo-text">Otimize sua rede com sugestões automáticas.</p>
+      </div>
+    </aside>
+
+    <main>
+      <div class="page-inner">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Visão Geral</h1>
+            <p class="page-sub">Resumo da sua rede em tempo real</p>
+          </div>
+          <div class="live-label">
+            <span class="live-dot"></span>
+            Atualizado agora
+          </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="kpi-grid">
+          <div class="glass-panel kpi-card">
+            <div class="panel-top-line"></div>
+            <div class="kpi-top">
+              <span class="kpi-label">Dispositivos Ativos</span>
+              <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+            </div>
+            <div><span class="kpi-value" id="kpi-devices">--</span><span class="kpi-unit">/ --</span></div>
+            <div class="kpi-delta">
+              <span class="delta-badge pos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>100%</span>
+              <span class="delta-note">todos online</span>
+            </div>
+          </div>
+          <div class="glass-panel kpi-card">
+            <div class="panel-top-line"></div>
+            <div class="kpi-top">
+              <span class="kpi-label">Tráfego de Dados</span>
+              <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
+            </div>
+            <div><span class="kpi-value" id="kpi-traffic">--</span><span class="kpi-unit">MB hoje</span></div>
+            <div class="kpi-delta">
+              <span class="delta-badge pos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>12%</span>
+              <span class="delta-note">vs. ontem</span>
+            </div>
+          </div>
+          <div class="glass-panel kpi-card">
+            <div class="panel-top-line"></div>
+            <div class="kpi-top">
+              <span class="kpi-label">Alertas Pendentes</span>
+              <div class="kpi-icon warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+            </div>
+            <div><span class="kpi-value" id="kpi-alerts">--</span><span class="kpi-unit">alertas</span></div>
+            <div class="kpi-delta">
+              <span class="delta-badge neg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><line x1="7" y1="7" x2="17" y2="17"/><polyline points="17 7 17 17 7 17"/></svg>2</span>
+              <span class="delta-note">nas últimas 24h</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts + Network -->
+        <div class="main-grid">
+          <div class="glass-panel chart-panel">
+            <div class="panel-top-line"></div>
+            <div class="chart-header">
+              <div>
+                <div class="chart-title-row">
+                  <span class="live-dot"></span>
+                  <span class="chart-title">Tráfego em Tempo Real</span>
+                </div>
+                <p class="chart-sub">Mbps por horário</p>
+              </div>
+              <div class="chart-meta">
+                <div class="chart-legend"><span class="chart-legend-dot"></span> Download</div>
+                <div class="chart-peak">pico <span id="peak-val">--</span></div>
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="trafficChart"></canvas>
+            </div>
+          </div>
+
+          <div class="glass-panel net-panel">
+            <div class="panel-top-line"></div>
+            <div class="net-header">
+              <div>
+                <h3 class="chart-title">Rede e Dispositivos</h3>
+                <p class="chart-sub">Topologia da sua rede</p>
+              </div>
+              <span class="active-badge" id="active-badge">-- ativos</span>
+            </div>
+            <div class="net-graph">
+              <svg id="netSvg" viewBox="0 0 400 320" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                  <linearGradient id="connGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="hsl(195,100%,56%)" stop-opacity="0.55"/>
+                    <stop offset="100%" stop-color="hsl(195,100%,56%)" stop-opacity="0.08"/>
+                  </linearGradient>
+                  <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="hsl(195,100%,56%)" stop-opacity="0.45"/>
+                    <stop offset="60%" stop-color="hsl(195,100%,56%)" stop-opacity="0.06"/>
+                    <stop offset="100%" stop-color="hsl(195,100%,56%)" stop-opacity="0"/>
+                  </radialGradient>
+                </defs>
+                <circle cx="200" cy="160" r="70" fill="url(#centerGlow)"/>
+              </svg>
+              <div class="router-node">
+                <div style="position:relative">
+                  <span class="router-ring"></span>
+                  <div class="router-circle">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="6" width="22" height="12" rx="2"/><path d="M1 10h22"/><path d="M8 10v4"/><path d="M12 10v4"/><path d="M16 10v4"/></svg>
+                  </div>
+                </div>
+                <span class="router-name">Roteador MyFi</span>
+                <span class="router-ip">192.168.0.1</span>
+              </div>
+              <div id="network-devices"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+<script src="{{ url_for('static', filename='main.js') }}"></script>
+<script>
+  // Restaurar estado da sidebar
+  if (localStorage.getItem('sidebar-collapsed') === 'true') {
+    document.getElementById('sidebar').classList.add('collapsed');
+  }
+
+  function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    sidebar.classList.toggle('collapsed');
+    localStorage.setItem('sidebar-collapsed', sidebar.classList.contains('collapsed'));
+  }
+</script>
+</body>
+</html>
