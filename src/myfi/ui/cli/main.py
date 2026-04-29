@@ -2,6 +2,7 @@ import sys
 import argparse
 import logging
 import json
+from time import sleep
 from pathlib import Path
 from datetime import datetime
 from rich.console import Console
@@ -129,6 +130,7 @@ def show_help():
     table.add_row("limit", "Manage device limits", "[dim]myfi limit set --mac ...[/dim]")
     table.add_row("workflow", "Run a predefined workflow", "[dim]myfi workflow run <name>[/dim]")
     table.add_row("chunk", "Manage chunks (list/enable/disable)", "[dim]myfi chunk list[/dim]")
+    table.add_row("topology", "Show network topology", "[dim]myfi topology show[/dim]")
 
     console.print(table)
     console.print()
@@ -138,7 +140,9 @@ def show_help():
 def cmd_setup(args):
     """Comando setup com feedback visual."""
     console.print("[  OK  ] Loading Chunks...")
+    sleep(1)
     console.print("[  OK  ] Mapping Interface: wlan0")
+    sleep(1)
     console.print("[  OK  ] Establishing Secure Channel: Telegram @MyFi_Bot\n")
 
     config = ConfigManager()
@@ -453,7 +457,7 @@ def main():
         add_help=False
     )
     parser.add_argument("-h", "--help", action="store_true", help="Show help")
-    parser.add_argument("-V", "--version", action="store_true", help="Show version")  # ← Corrigido
+    parser.add_argument("-V", "--version", action="store_true", help="Show version")
 
     verbosity = parser.add_mutually_exclusive_group()
     verbosity.add_argument('-q', '--quiet', action='store_true', help='Quiet mode')
