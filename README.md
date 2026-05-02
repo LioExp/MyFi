@@ -111,4 +111,3 @@ Contributions are welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md).
 <div align="center">
 
 `// build. break. document.` &nbsp;·&nbsp; *Col 3:23*
-```
