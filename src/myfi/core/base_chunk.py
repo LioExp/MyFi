@@ -9,6 +9,7 @@ class BaseChunk(ABC):
 
     @staticmethod
     @abstractmethod
+
     def manifest() -> Dict[str, Any]:
         #Retorna os metadados do Chunk.Deve incluir: name, version, description, inputs, outputs, permissions.
         
