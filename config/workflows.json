@@ -1,0 +1,6 @@
+{
+  "daily_report": {
+    "steps": ["TelegramNotifier"],
+    "description": "Envia um relatório diário via Telegram"
+  }
+}
