@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MyFi — Modular Network Observability Platform</title>
-<meta name="description" content="Discover devices, monitor traffic, set limits, and extend functionality with puzzle-piece modules called Chunks and Plugins.">
+<meta name="description" content="Discover every device, monitor traffic in real time, set usage limits, and extend functionality with Chunks and Plugins — all from your terminal.">
 <meta property="og:title" content="MyFi — Modular Network Observability Platform">
-<meta property="og:description" content="Discover devices, monitor traffic, set limits, and extend functionality with puzzle-piece modules.">
+<meta property="og:description" content="Your network, your rules. Discover, monitor, and control your local network.">
 <meta property="og:type" content="website">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%2300A6FF' d='M5 12.55a11 11 0 0 1 14.08 0'/%3E%3Cpath fill='%2300A6FF' d='M1.42 9a16 16 0 0 1 21.16 0'/%3E%3Cpath fill='%2300A6FF' d='M8.53 16.11a6 6 0 0 1 6.95 0'/%3E%3Ccircle fill='%2300A6FF' cx='12' cy='20' r='1'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,16 +14,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #0A0A0F;
-  --bg2: #0D1117;
-  --panel: rgba(255,255,255,0.03);
+  --bg: #08090D;
+  --bg2: #0C0E14;
+  --panel: #111318;
   --border: rgba(255,255,255,0.06);
+  --border-hover: rgba(255,255,255,0.10);
   --cyan: #00A6FF;
   --green: #00FF99;
   --text: #E8EDF5;
+  --text-secondary: #B0B8C8;
   --muted: #7D8590;
   --muted2: #5A6370;
-  --radius: 12px;
+  --radius: 10px;
+  --radius-lg: 14px;
   --fm: 'JetBrains Mono', monospace;
   --fh: 'Inter', sans-serif;
 }
@@ -31,267 +34,201 @@
 html { scroll-behavior:smooth; }
 body { background:var(--bg); color:var(--text); font-family:var(--fh); line-height:1.6; overflow-x:hidden; -webkit-font-smoothing:antialiased; }
 
-/* ─── NAV ─── */
-.nav { position:fixed; top:0; left:0; right:0; z-index:100; background:rgba(10,10,15,0.85); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border-bottom:1px solid var(--border); }
-.nav__track { max-width:1200px; margin:0 auto; display:flex; align-items:center; height:60px; padding:0 24px; gap:32px; }
+/* ═══════ NAV ═══════ */
+.nav { position:fixed; top:0; left:0; right:0; z-index:100; background:rgba(8,9,13,0.88); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border-bottom:1px solid var(--border); }
+.nav__inner { max-width:1200px; margin:0 auto; display:flex; align-items:center; height:56px; padding:0 24px; gap:40px; }
 .nav__brand { display:flex; align-items:center; gap:10px; text-decoration:none; flex-shrink:0; }
-.nav__mark { height:28px; width:28px; }
-.nav__logo-text { font-weight:800; font-size:1.15rem; color:var(--text); letter-spacing:-0.02em; }
+.nav__mark { height:26px; width:26px; }
+.nav__logo-text { font-weight:800; font-size:1.1rem; color:var(--text); letter-spacing:-0.02em; }
 .nav__logo-text em { color:var(--cyan); font-style:normal; }
-.nav__menu { display:flex; gap:28px; flex:1; justify-content:center; }
+.nav__menu { display:flex; gap:28px; flex:1; }
 .nav__menu a { color:var(--muted); text-decoration:none; font-size:0.875rem; font-weight:500; transition:color 0.2s; }
 .nav__menu a:hover { color:var(--text); }
 .nav__actions { display:flex; gap:10px; flex-shrink:0; }
-.nav__btn { padding:8px 18px; border-radius:8px; font-size:0.85rem; font-weight:600; text-decoration:none; transition:all 0.2s; white-space:nowrap; }
-.nav__btn--ghost { border:1px solid var(--border); color:var(--text); background:transparent; }
-.nav__btn--ghost:hover { border-color:var(--cyan); background:rgba(0,166,255,0.08); }
-.nav__btn--primary { background:var(--cyan); color:#000; border:none; }
-.nav__btn--primary:hover { filter:brightness(1.15); transform:translateY(-1px); box-shadow:0 4px 20px rgba(0,166,255,0.35); }
-.nav__burger { display:none; background:none; border:none; cursor:pointer; flex-direction:column; gap:5px; padding:4px; }
-.nav__burger span { width:22px; height:2px; background:var(--text); border-radius:2px; transition:all 0.2s; }
+.nav__btn { padding:7px 16px; border-radius:7px; font-size:0.85rem; font-weight:600; text-decoration:none; transition:all 0.2s; white-space:nowrap; }
+.nav__btn--ghost { border:1px solid var(--border); color:var(--text-secondary); background:transparent; }
+.nav__btn--ghost:hover { border-color:var(--border-hover); background:rgba(255,255,255,0.04); color:var(--text); }
+.nav__btn--primary { background:var(--cyan); color:#000; border:none; font-weight:700; }
+.nav__btn--primary:hover { filter:brightness(1.12); transform:translateY(-1px); box-shadow:0 4px 20px rgba(0,166,255,0.30); }
 
-/* ─── SECTIONS ─── */
-.section { padding:120px 0; position:relative; }
-.section--alt { background:var(--bg2); }
-.section__inner { max-width:1100px; margin:0 auto; padding:0 24px; }
-.section__label { font-family:var(--fm); font-size:0.75rem; color:var(--cyan); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:16px; }
-.section__title { font-size:2.5rem; font-weight:800; letter-spacing:-0.03em; line-height:1.15; margin-bottom:20px; }
-.section__title em { color:var(--cyan); font-style:normal; }
-.section__desc { color:var(--muted); font-size:1.05rem; max-width:560px; line-height:1.7; margin-bottom:48px; }
-
-/* ─── HERO ─── */
-.hero { padding:160px 0 120px; position:relative; overflow:hidden; }
-.hero__universe { position:absolute; inset:0; pointer-events:none; }
-.hero__nebula { position:absolute; top:-200px; left:50%; transform:translateX(-50%); width:800px; height:600px; background:radial-gradient(ellipse, rgba(0,166,255,0.12) 0%, transparent 70%); }
-.hero__grid-floor { position:absolute; bottom:0; left:0; right:0; height:300px; perspective:600px; }
-.hero__grid-lines { position:absolute; inset:0; background-image:linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px); background-size:40px 40px; transform:rotateX(60deg); transform-origin:center bottom; mask-image:linear-gradient(to top, rgba(0,0,0,0.4), transparent); }
-.hero__constellation { position:absolute; inset:0; }
-.hero__connections { position:absolute; inset:0; width:100%; height:100%; }
-.float-icon { position:absolute; width:44px; height:44px; border-radius:12px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center; animation:float 6s ease-in-out infinite; backdrop-filter:blur(8px); }
-.float-icon img { width:22px; height:22px; opacity:0.8; }
-.float-icon--l1 { top:15%; left:8%; } .float-icon--l2 { top:35%; left:5%; } .float-icon--l3 { top:55%; left:10%; } .float-icon--l4 { top:70%; left:6%; } .float-icon--l5 { top:82%; left:12%; }
-.float-icon--r1 { top:18%; right:8%; } .float-icon--r2 { top:38%; right:5%; } .float-icon--r3 { top:58%; right:10%; } .float-icon--r4 { top:72%; right:6%; } .float-icon--r5 { top:84%; right:12%; }
-@keyframes float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-12px); } }
-
-.hero__layout { max-width:1100px; margin:0 auto; padding:0 24px; position:relative; z-index:2; display:grid; grid-template-columns:1fr 1fr; gap:60px; align-items:center; }
-.hero__eyebrow { margin-bottom:16px; }
-.pill { display:inline-block; padding:5px 14px; border-radius:20px; font-size:0.8rem; font-weight:500; background:rgba(0,166,255,0.1); border:1px solid rgba(0,166,255,0.2); color:var(--cyan); }
-.hero__title { font-size:3.2rem; font-weight:900; letter-spacing:-0.04em; line-height:1.1; margin-bottom:20px; }
+/* ═══════ HERO ═══════ */
+.hero { padding:140px 0 100px; position:relative; overflow:hidden; text-align:center; }
+.hero__glow { position:absolute; top:-300px; left:50%; transform:translateX(-50%); width:900px; height:600px; background:radial-gradient(ellipse, rgba(0,166,255,0.09) 0%, transparent 65%); pointer-events:none; }
+.hero__inner { max-width:800px; margin:0 auto; padding:0 24px; position:relative; z-index:2; }
+.pill { display:inline-block; padding:5px 14px; border-radius:20px; font-size:0.78rem; font-weight:500; background:rgba(0,166,255,0.08); border:1px solid rgba(0,166,255,0.18); color:var(--cyan); margin-bottom:24px; }
+.hero__title { font-size:3rem; font-weight:900; letter-spacing:-0.04em; line-height:1.12; margin-bottom:20px; }
 .hero__accent { color:var(--cyan); }
-.hero__lead { font-size:1.05rem; color:var(--muted); line-height:1.7; margin-bottom:32px; max-width:480px; }
-.hero__actions { display:flex; gap:12px; align-items:center; }
+.hero__lead { font-size:1.1rem; color:var(--muted); line-height:1.7; margin-bottom:36px; max-width:560px; margin-left:auto; margin-right:auto; }
+.hero__actions { display:flex; gap:12px; justify-content:center; align-items:center; }
 .btn { display:inline-flex; align-items:center; gap:8px; padding:12px 24px; border-radius:8px; font-weight:600; font-size:0.9rem; font-family:var(--fh); cursor:pointer; transition:all 0.2s; text-decoration:none; }
-.btn--primary { background:var(--cyan); color:#000; border:none; }
-.btn--primary:hover { filter:brightness(1.15); transform:translateY(-1px); box-shadow:0 4px 20px rgba(0,166,255,0.35); }
-.btn--ghost { border:1px solid var(--border); color:var(--text); background:transparent; }
-.btn--ghost:hover { border-color:var(--cyan); background:rgba(0,166,255,0.08); }
+.btn--primary { background:var(--cyan); color:#000; border:none; font-weight:700; }
+.btn--primary:hover { filter:brightness(1.12); transform:translateY(-1px); box-shadow:0 4px 20px rgba(0,166,255,0.35); }
+.btn--ghost { border:1px solid var(--border); color:var(--text-secondary); background:transparent; }
+.btn--ghost:hover { border-color:var(--border-hover); background:rgba(255,255,255,0.04); color:var(--text); }
 
-.terminal { background:#0D1117; border:1px solid var(--border); border-radius:10px; overflow:hidden; font-family:var(--fm); }
+/* ═══════ TERMINAL WINDOW ═══════ */
+.terminal-wrap { max-width:700px; margin:48px auto 0; padding:0 24px; position:relative; z-index:2; }
+.terminal { background:#0D1117; border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; font-family:var(--fm); text-align:left; }
 .terminal__chrome { display:flex; align-items:center; padding:10px 14px; background:rgba(0,0,0,0.3); border-bottom:1px solid var(--border); }
 .terminal__dots { display:flex; gap:6px; }
 .terminal__dots span { width:10px; height:10px; border-radius:50%; }
 .terminal__dots span:nth-child(1){background:#ff5f56;} .terminal__dots span:nth-child(2){background:#ffbd2e;} .terminal__dots span:nth-child(3){background:#27c93f;}
 .terminal__label { flex:1; text-align:center; font-size:0.75rem; color:var(--muted); }
-.terminal__copy { background:none; border:1px solid var(--border); border-radius:4px; color:var(--muted); cursor:pointer; padding:2px 8px; font-size:0.7rem; transition:all 0.2s; }
-.terminal__copy:hover { border-color:var(--cyan); color:var(--cyan); }
-.terminal__body { padding:16px 18px; }
-.terminal__cmd { color:var(--green); font-size:0.85rem; }
-.terminal__output { color:var(--green); margin-top:8px; font-size:0.85rem; }
+.terminal__copy { background:rgba(255,255,255,0.04); border:1px solid var(--border); color:var(--muted); cursor:pointer; padding:4px 12px; border-radius:6px; font-size:0.75rem; font-family:var(--fh); transition:all 0.2s; }
+.terminal__copy:hover { border-color:var(--cyan); color:var(--cyan); background:rgba(0,166,255,0.08); }
+.terminal__body { padding:20px 22px; color:var(--green); font-size:0.88rem; line-height:1.8; }
+.terminal__dim { color:var(--muted2); }
 
-/* ─── MARQUEE ─── */
-.marquee { position:relative; background:var(--bg2); border-top:1px solid var(--border); border-bottom:1px solid var(--border); overflow:hidden; height:56px; display:flex; align-items:center; }
-.marquee__track { display:flex; gap:40px; animation:marquee 30s linear infinite; white-space:nowrap; }
+/* ═══════ MARQUEE ═══════ */
+.marquee { position:relative; background:var(--bg2); border-top:1px solid var(--border); border-bottom:1px solid var(--border); overflow:hidden; height:52px; display:flex; align-items:center; }
+.marquee__track { display:flex; gap:36px; animation:marquee 30s linear infinite; white-space:nowrap; }
 .marquee__item { display:flex; align-items:center; gap:8px; font-size:0.85rem; color:var(--muted); font-weight:500; }
-.marquee__item img { width:20px; height:20px; }
 .marquee__fade { position:absolute; top:0; bottom:0; width:60px; pointer-events:none; z-index:2; }
 .marquee__fade--left { left:0; background:linear-gradient(to right, var(--bg2), transparent); }
 .marquee__fade--right { right:0; background:linear-gradient(to left, var(--bg2), transparent); }
 @keyframes marquee { 0% { transform:translateX(0); } 100% { transform:translateX(-50%); } }
 
-/* ─── SPLIT ─── */
-.split { display:grid; grid-template-columns:1fr 1fr; gap:60px; align-items:center; }
-.split--reverse .split__visual { order:2; }
-.split--reverse .split__text { order:1; }
-.split__visual { position:relative; }
+/* ═══════ SECTIONS ═══════ */
+.section { padding:100px 0; position:relative; }
+.section--alt { background:var(--bg2); }
+.section__inner { max-width:1100px; margin:0 auto; padding:0 24px; }
+.section__header { text-align:center; margin-bottom:60px; }
+.section__label { font-family:var(--fm); font-size:0.75rem; color:var(--cyan); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:14px; }
+.section__title { font-size:2.2rem; font-weight:800; letter-spacing:-0.03em; line-height:1.18; }
+.section__title em { color:var(--cyan); font-style:normal; }
+.section__desc { color:var(--muted); font-size:1rem; max-width:520px; line-height:1.7; margin:16px auto 0; }
 
-/* ─── FLOW DIAGRAM ─── */
-.flow-wrap { position:relative; height:360px; }
-.flow-svg { position:absolute; inset:0; width:100%; height:100%; }
-.flow-link { stroke:rgba(255,255,255,0.06); stroke-width:1.5; fill:none; }
-.flow-bus { stroke:rgba(0,166,255,0.15); stroke-width:2; fill:none; }
-.flow-trunk { stroke:var(--cyan); stroke-width:2.5; fill:none; }
-.flow-pulse { fill:var(--cyan); animation:pulse 2s ease-in-out infinite; }
-@keyframes pulse { 0%,100% { opacity:0.4; r:4; } 50% { opacity:1; r:6; } }
-.flow-grid { position:absolute; inset:0; display:flex; justify-content:space-between; padding:20px 0; }
-.flow-col { display:flex; flex-direction:column; gap:12px; }
-.flow-col--clients { align-items:flex-start; padding-left:20px; }
-.flow-col--servers { align-items:flex-end; padding-right:20px; }
-.flow-label { font-family:var(--fm); font-size:0.65rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:4px; }
-.flow-node { display:flex; align-items:center; gap:8px; padding:8px 14px; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; font-size:0.8rem; font-weight:500; }
-.flow-node img { width:16px; height:16px; }
-
-/* ─── CARDS ─── */
-.card-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:20px; }
-.card { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:28px; transition:border-color 0.25s, transform 0.25s; }
-.card:hover { border-color:var(--cyan); transform:translateY(-3px); }
+/* ═══════ CARDS ═══════ */
+.card-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:18px; }
+.card { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-lg); padding:28px; transition:border-color 0.25s, transform 0.25s; }
+.card:hover { border-color:var(--border-hover); transform:translateY(-2px); }
 .card__icon { font-size:1.8rem; margin-bottom:14px; }
 .card__title { font-weight:700; font-size:1.05rem; margin-bottom:8px; }
 .card__desc { font-size:0.88rem; color:var(--muted); line-height:1.6; }
-.card__cmd { display:inline-block; margin-top:14px; font-family:var(--fm); font-size:0.75rem; color:var(--cyan); background:rgba(0,166,255,0.07); padding:4px 10px; border-radius:4px; }
+.card__cmd { display:inline-block; margin-top:14px; font-family:var(--fm); font-size:0.75rem; color:var(--cyan); background:rgba(0,166,255,0.06); padding:4px 10px; border-radius:4px; }
 
-/* ─── SECURITY ─── */
-.security-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:20px; }
-.security-card { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:24px; }
-.security-card h4 { font-weight:700; margin-bottom:8px; font-size:1rem; }
-.security-card p { font-size:0.85rem; color:var(--muted); line-height:1.6; }
+/* ═══════ LAYOUTS ═══════ */
+.split { display:grid; grid-template-columns:1fr 1fr; gap:60px; align-items:center; }
+.split--reverse .split__visual { order:2; }
+.split--reverse .split__text { order:1; }
+.split__visual { position:relative; display:flex; justify-content:center; }
+.steps { display:flex; flex-direction:column; gap:20px; }
+.step { display:flex; gap:16px; }
+.step__num { width:36px; height:36px; border-radius:50%; border:1px solid var(--cyan); display:flex; align-items:center; justify-content:center; font-weight:800; font-family:var(--fm); color:var(--cyan); flex-shrink:0; font-size:0.85rem; }
+.step h4 { font-weight:700; margin-bottom:4px; font-size:1rem; }
+.step p { font-size:0.85rem; color:var(--muted); }
 
-/* ─── INSTALL ─── */
-.install-grid { display:grid; grid-template-columns:1fr 1fr; gap:50px; align-items:center; }
-.i-step { display:flex; gap:20px; margin-bottom:24px; }
-.i-num { width:40px; height:40px; border-radius:50%; border:1px solid var(--cyan); display:flex; align-items:center; justify-content:center; font-weight:800; font-family:var(--fm); color:var(--cyan); flex-shrink:0; }
-.i-step h4 { font-weight:700; margin-bottom:4px; }
-.i-step p { font-size:0.85rem; color:var(--muted); }
+/* ═══════ INSTALL TERMINAL ═══════ */
+.install-terminal { max-width:700px; margin:0 auto; }
+.install-terminal .terminal__body { display:flex; align-items:center; gap:12px; }
 
-/* ─── CTA ─── */
+/* ═══════ CTA ═══════ */
 .cta { text-align:center; padding:100px 0; }
-.cta__badge { display:inline-flex; align-items:center; gap:8px; padding:6px 16px; border-radius:20px; background:rgba(0,255,153,0.08); border:1px solid rgba(0,255,153,0.2); font-size:0.85rem; color:var(--green); margin-bottom:24px; }
-.cta__badge span { width:6px; height:6px; border-radius:50%; background:var(--green); }
+.cta__badge { display:inline-flex; align-items:center; gap:8px; padding:6px 16px; border-radius:20px; background:rgba(0,255,153,0.07); border:1px solid rgba(0,255,153,0.16); font-size:0.85rem; color:var(--green); margin-bottom:24px; }
+.cta__badge span { width:6px; height:6px; border-radius:50%; background:var(--green); animation:pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity:0.6; } 50% { opacity:1; } }
 .cta h2 { font-size:2.5rem; font-weight:800; margin-bottom:16px; }
 .cta h2 em { color:var(--cyan); font-style:normal; }
 .cta p { color:var(--muted); margin-bottom:32px; }
 .cta__btns { display:flex; gap:16px; justify-content:center; }
 
-/* ─── FOOTER ─── */
+/* ═══════ FOOTER ═══════ */
 .footer { padding:40px 0; border-top:1px solid var(--border); }
 .footer__inner { max-width:1100px; margin:0 auto; padding:0 24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; }
-.footer__logo { display:flex; align-items:center; gap:8px; font-weight:800; font-size:1rem; color:var(--cyan); }
-.footer__logo img { height:24px; width:24px; }
+.footer__brand { display:flex; align-items:center; gap:8px; }
+.footer__brand img { height:22px; width:22px; }
+.footer__brand span { font-weight:800; font-size:0.9rem; color:var(--cyan); }
 .footer__links { display:flex; gap:24px; }
-.footer__links a { color:var(--muted); text-decoration:none; font-size:0.85rem; transition:color 0.2s; }
+.footer__links a { color:var(--muted2); text-decoration:none; font-size:0.85rem; transition:color 0.2s; }
 .footer__links a:hover { color:var(--text); }
 .footer__copy { font-size:0.8rem; color:var(--muted2); }
 
-/* ─── REVEAL ─── */
-.reveal { opacity:0; transform:translateY(24px); transition:all 0.6s ease; }
+/* ═══════ REVEAL ═══════ */
+.reveal { opacity:0; transform:translateY(20px); transition:all 0.6s ease; }
 .reveal.visible { opacity:1; transform:translateY(0); }
 
-/* ─── RESPONSIVE ─── */
+/* ═══════ RESPONSIVE ═══════ */
 @media (max-width:768px) {
-  .hero__layout, .split, .install-grid { grid-template-columns:1fr; }
-  .hero__title { font-size:2.2rem; }
-  .section__title { font-size:1.8rem; }
-  .nav__menu, .nav__actions { display:none; }
-  .nav__burger { display:flex; }
+  .hero__title { font-size:2rem; }
+  .section__title { font-size:1.6rem; }
+  .split { grid-template-columns:1fr; }
+  .nav__menu { display:none; }
   .hero { padding:120px 0 80px; }
   .section { padding:80px 0; }
-  .float-icon { display:none; }
+  .terminal-wrap { margin-top:32px; }
+  .split--reverse .split__visual { order:0; }
 }
 </style>
 </head>
 <body>
 
-<!-- ─── NAV ─── -->
+<!-- ═══════ NAV ═══════ -->
 <header class="nav">
-  <div class="nav__track">
+  <div class="nav__inner">
     <a href="/" class="nav__brand">
-      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAAB4CAYAAAB1ovlvAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAA3klEQVR4nO3dMQrCMBiA4fYOHXuEzp29gwcP3EHH7j2Nm5tb9w7uHj1AN0FwL7SFPBL4fuDyg0l/PnFIKaVSSqVUSqVUSqVUSqVUD2PP85im6Wzb9nmeZ4QQe3tWRewG7MQPDO+sqqD7vpNSHuZ9uBmGIWOM0b2qsxvwIufv2ff93eMREqsqdAJ28I5Jkvj8/4ecy/eVA1FV6QTs3ACLmOv94iiK7H1Dmjd3zn2e5Maq+lRIqXsA/gSA++33N/4HYI5ZrKrwCUgtG0II86OPmNPNBp2M16/RTUZtCKob/JSUbw9KKXUDZp0mItp6AvIAAAAASUVORK5CYII=" alt="MyFi" height="28" width="28" class="nav__mark">
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAAB4CAYAAAB1ovlvAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAA3klEQVR4nO3dMQrCMBiA4fYOHXuEzp29gwcP3EHH7j2Nm5tb9w7uHj1AN0FwL7SFPBL4fuDyg0l/PnFIKaVSSqVUSqVUSqVUSqVUD2PP85im6Wzb9nmeZ4QQe3tWRewG7MQPDO+sqqD7vpNSHuZ9uBmGIWOM0b2qsxvwIufv2ff93eMREqsqdAJ28I5Jkvj8/4ecy/eVA1FV6QTs3ACLmOv94iiK7H1Dmjd3zn2e5Maq+lRIqXsA/gSA++33N/4HYI5ZrKrwCUgtG0II86OPmNPNBp2M16/RTUZtCKob/JSUbw9KKXUDZp0mItp6AvIAAAAASUVORK5CYII=" alt="MyFi" height="26" width="26" class="nav__mark">
       <span class="nav__logo-text">My<em>Fi</em></span>
     </a>
     <nav class="nav__menu">
       <a href="#features">Features</a>
-      <a href="#architecture">Architecture</a>
+      <a href="#how-it-works">How it Works</a>
       <a href="#modules">Modules</a>
       <a href="#install">Install</a>
     </nav>
     <div class="nav__actions">
-      <a href="https://github.com/lioexp/myfi" class="nav__btn nav__btn--ghost" target="_blank" rel="noopener">Star on GitHub</a>
-      <a href="#install" class="nav__btn nav__btn--primary">Get Started</a>
+      <a href="https://github.com/lioexp/myfi" class="nav__btn nav__btn--ghost" target="_blank" rel="noopener">GitHub</a>
+      <a href="#install-hero" class="nav__btn nav__btn--primary">Get Started</a>
     </div>
-    <button class="nav__burger" aria-label="Toggle menu"><span></span><span></span><span></span></button>
   </div>
 </header>
 
 <main>
 
 <!-- ═══════ HERO ═══════ -->
-<section class="hero" id="install">
-  <div class="hero__universe">
-    <div class="hero__nebula"></div>
-    <div class="hero__grid-floor"><div class="hero__grid-lines"></div></div>
-    <div class="hero__constellation">
-      <svg class="hero__connections" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
-        <path d="M80,200 Q300,400 600,350" stroke="rgba(0,166,255,0.25)" stroke-width="1.5" fill="none" stroke-dasharray="6 4"></path>
-        <path d="M90,320 Q280,420 600,350" stroke="rgba(0,166,255,0.2)" stroke-width="1.5" fill="none" stroke-dasharray="6 4"></path>
-        <path d="M110,450 Q320,440 600,350" stroke="rgba(0,166,255,0.15)" stroke-width="1.5" fill="none" stroke-dasharray="6 4"></path>
-        <path d="M120,580 Q340,460 600,350" stroke="rgba(0,166,255,0.15)" stroke-width="1.5" fill="none" stroke-dasharray="6 4"></path>
-        <path d="M1120,180 Q900,400 600,350" stroke="rgba(0,166,255,0.25)" stroke-width="1.5" fill="none" stroke-dasharray="6 4"></path>
-        <path d="M1130,300 Q920,430 600,350" stroke="rgba(0,166,255,0.2)" stroke-width="1.5" fill="none" stroke-dasharray="6 4"></path>
-        <path d="M1140,430 Q940,450 600,350" stroke="rgba(0,166,255,0.15)" stroke-width="1.5" fill="none" stroke-dasharray="6 4"></path>
-        <path d="M1150,560 Q960,470 600,350" stroke="rgba(0,166,255,0.15)" stroke-width="1.5" fill="none" stroke-dasharray="6 4"></path>
-        <path d="M1120,650 Q950,520 600,350" stroke="rgba(0,166,255,0.12)" stroke-width="1.5" fill="none" stroke-dasharray="6 4"></path>
-        <path d="M80,680 Q300,500 600,350" stroke="rgba(0,166,255,0.12)" stroke-width="1.5" fill="none" stroke-dasharray="6 4"></path>
-      </svg>
-      <div class="float-icon float-icon--l1"><span style="font-size:20px">📡</span></div>
-      <div class="float-icon float-icon--l2"><span style="font-size:20px">📊</span></div>
-      <div class="float-icon float-icon--l3"><span style="font-size:20px">⏳</span></div>
-      <div class="float-icon float-icon--l4"><span style="font-size:20px">🔔</span></div>
-      <div class="float-icon float-icon--l5"><span style="font-size:20px">🌍</span></div>
-      <div class="float-icon float-icon--r1"><span style="font-size:20px">🧩</span></div>
-      <div class="float-icon float-icon--r2"><span style="font-size:20px">🔒</span></div>
-      <div class="float-icon float-icon--r3"><span style="font-size:20px">🛡️</span></div>
-      <div class="float-icon float-icon--r4"><span style="font-size:20px">📡</span></div>
-      <div class="float-icon float-icon--r5"><span style="font-size:20px">📊</span></div>
+<section class="hero" id="install-hero">
+  <div class="hero__glow"></div>
+  <div class="hero__inner">
+    <div class="pill">Open Source · v2.0.0</div>
+    <h1 class="hero__title">Your network,<br><span class="hero__accent">your rules.</span></h1>
+    <p class="hero__lead">MyFi is a modular observability &amp; automation platform for local networks. Discover every device, monitor traffic in real time, set usage limits, and extend functionality with puzzle-piece modules called Chunks and Plugins — all from your terminal.</p>
+    <div class="hero__actions">
+      <a href="#install" class="btn btn--primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        Download
+      </a>
+      <a href="https://github.com/lioexp/myfi" class="btn btn--ghost" target="_blank" rel="noopener">View on GitHub →</a>
     </div>
   </div>
-
-  <div class="hero__layout">
-    <div class="hero__text reveal visible">
-      <div class="hero__eyebrow"><span class="pill">Now in Active Development</span></div>
-      <h1 class="hero__title">Your network,<br><span class="hero__accent">your rules.</span></h1>
-      <p class="hero__lead">MyFi is a modular observability & automation platform for small-scale local networks. Discover devices, monitor traffic, set limits, and extend functionality with puzzle-piece modules called Chunks and Plugins.</p>
-      <div class="hero__actions">
-        <a href="#install" class="btn btn--primary">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-          Get Started
-        </a>
-        <a href="https://github.com/lioexp/myfi" class="btn btn--ghost" target="_blank" rel="noopener">View on GitHub →</a>
+  <div class="terminal-wrap reveal">
+    <div class="terminal">
+      <div class="terminal__chrome">
+        <div class="terminal__dots"><span></span><span></span><span></span></div>
+        <span class="terminal__label">bash</span>
+        <button class="terminal__copy" onclick="copyInstall()">copy</button>
       </div>
-    </div>
-
-    <div class="hero__terminal-wrap reveal visible">
-      <div class="terminal terminal--hero">
-        <div class="terminal__chrome">
-          <div class="terminal__dots"><span></span><span></span><span></span></div>
-          <span class="terminal__label">bash</span>
-          <button class="terminal__copy" onclick="copyInstall()">copy</button>
-        </div>
-        <div class="terminal__body">
-          <div class="terminal__line"><span class="terminal__cmd">git clone https://github.com/lioexp/myfi.git</span></div>
-          <div class="terminal__line"><span class="terminal__cmd">cd myfi && make setup</span></div>
-          <div class="terminal__line"><span class="terminal__cmd">myfi setup</span></div>
-          <div class="terminal__line"><span class="terminal__cmd">myfi scan</span></div>
-          <div class="terminal__output" id="termOutput">✓ 4 devices found</div>
-        </div>
+      <div class="terminal__body">
+        <span id="installCommandText">curl -fsSL https://raw.githubusercontent.com/lioexp/myfi/main/install.sh | bash</span>
       </div>
     </div>
   </div>
 </section>
 
 <!-- ═══════ MARQUEE ═══════ -->
-<section class="marquee" aria-label="Supported features">
+<section class="marquee" aria-label="Features ticker">
   <div class="marquee__fade marquee__fade--left"></div>
-  <div class="marquee__track" id="marqueeTrack">
-    <div class="marquee__item"><span style="font-size:16px">📡</span> Network Scanner</div>
-    <div class="marquee__item"><span style="font-size:16px">📊</span> Traffic Monitor</div>
-    <div class="marquee__item"><span style="font-size:16px">⏳</span> Usage Limits</div>
-    <div class="marquee__item"><span style="font-size:16px">🔔</span> Telegram Alerts</div>
-    <div class="marquee__item"><span style="font-size:16px">🌍</span> Geolocation</div>
-    <div class="marquee__item"><span style="font-size:16px">🧩</span> Chunks & Plugins</div>
-    <div class="marquee__item"><span style="font-size:16px">🛡️</span> Zero Trust Profiling</div>
-    <div class="marquee__item"><span style="font-size:16px">📡</span> Network Scanner</div>
-    <div class="marquee__item"><span style="font-size:16px">📊</span> Traffic Monitor</div>
-    <div class="marquee__item"><span style="font-size:16px">⏳</span> Usage Limits</div>
-    <div class="marquee__item"><span style="font-size:16px">🔔</span> Telegram Alerts</div>
+  <div class="marquee__track">
+    <div class="marquee__item"><span>📡</span> Network Scanner</div>
+    <div class="marquee__item"><span>📊</span> Traffic Monitor</div>
+    <div class="marquee__item"><span>⏳</span> Usage Limits</div>
+    <div class="marquee__item"><span>🔔</span> Telegram Alerts</div>
+    <div class="marquee__item"><span>🌍</span> Geolocation</div>
+    <div class="marquee__item"><span>🧩</span> Chunks &amp; Plugins</div>
+    <div class="marquee__item"><span>🛡️</span> Zero Trust Profiling</div>
+    <div class="marquee__item"><span>🍯</span> Honeypot Detection</div>
+    <div class="marquee__item"><span>📡</span> Network Scanner</div>
+    <div class="marquee__item"><span>📊</span> Traffic Monitor</div>
+    <div class="marquee__item"><span>⏳</span> Usage Limits</div>
+    <div class="marquee__item"><span>🔔</span> Telegram Alerts</div>
   </div>
   <div class="marquee__fade marquee__fade--right"></div>
 </section>
@@ -299,142 +236,105 @@ body { background:var(--bg); color:var(--text); font-family:var(--fh); line-heig
 <!-- ═══════ FEATURES ═══════ -->
 <section class="section section--alt" id="features">
   <div class="section__inner">
-    <div class="section__label">Features</div>
-    <h2 class="section__title">Everything you need<br>to <em>own</em> your network</h2>
-    <p class="section__desc">From simple device discovery to programmable limits and plugins — MyFi turns network management into a visual, intuitive experience.</p>
+    <div class="section__header reveal">
+      <div class="section__label">Features</div>
+      <h2 class="section__title">Everything you need<br>to <em>own</em> your network</h2>
+      <p class="section__desc">From device discovery to programmable limits and real-time alerts — MyFi turns network management into a visual, intuitive experience.</p>
+    </div>
     <div class="card-grid reveal">
-      <div class="card"><div class="card__icon">📡</div><div class="card__title">Network Scanner</div><div class="card__desc">Discover every connected device with IP, MAC address and hostname. Passive and active detection in seconds.</div><span class="card__cmd">myfi scan</span></div>
-      <div class="card"><div class="card__icon">📊</div><div class="card__title">Traffic Monitor</div><div class="card__desc">Track real-time data consumption per device. Visualise usage peaks and patterns over time.</div><span class="card__cmd">myfi monitor</span></div>
-      <div class="card"><div class="card__icon">⏳</div><div class="card__title">Usage Limits</div><div class="card__desc">Set monthly or daily quotas per device. Automatic alerts when a device exceeds its defined limit.</div><span class="card__cmd">myfi limit</span></div>
-      <div class="card"><div class="card__icon">🔔</div><div class="card__title">Telegram Alerts</div><div class="card__desc">Receive instant notifications when a device exceeds its limit or a new device joins your network.</div><span class="card__cmd">chunk:telegram</span></div>
-      <div class="card"><div class="card__icon">🌍</div><div class="card__title">Geolocation</div><div class="card__desc">See where external connections originate. Geolocation plugin with integrated visual map overlay.</div><span class="card__cmd">plugin:geo</span></div>
-      <div class="card"><div class="card__icon">🧩</div><div class="card__title">Extensible Core</div><div class="card__desc">Add logic modules (Chunks) and technical capabilities (Plugins) on demand. Remove them just as easily.</div><span class="card__cmd">modular</span></div>
+      <div class="card"><div class="card__icon">📡</div><div class="card__title">Network Scanner</div><div class="card__desc">Discover every connected device with IP, MAC and hostname in seconds.</div><span class="card__cmd">myfi scan</span></div>
+      <div class="card"><div class="card__icon">📊</div><div class="card__title">Traffic Monitor</div><div class="card__desc">Track real-time data consumption per device with live throughput charts.</div><span class="card__cmd">myfi monitor</span></div>
+      <div class="card"><div class="card__icon">⏳</div><div class="card__title">Usage Limits</div><div class="card__desc">Set daily or monthly quotas per device. Auto-block when limits are exceeded.</div><span class="card__cmd">myfi limit</span></div>
+      <div class="card"><div class="card__icon">🔔</div><div class="card__title">Telegram Alerts</div><div class="card__desc">Instant notifications when limits are hit or new devices join your network.</div><span class="card__cmd">chunk:telegram</span></div>
+      <div class="card"><div class="card__icon">🌍</div><div class="card__title">Geolocation</div><div class="card__desc">See where external connections originate with integrated map overlay.</div><span class="card__cmd">plugin:geo</span></div>
+      <div class="card"><div class="card__icon">🧩</div><div class="card__title">Extensible Core</div><div class="card__desc">Add logic modules (Chunks) and technical capabilities (Plugins) on demand.</div><span class="card__cmd">modular</span></div>
     </div>
   </div>
 </section>
 
-<!-- ═══════ ARCHITECTURE ═══════ -->
-<section class="section" id="architecture">
+<!-- ═══════ HOW IT WORKS ═══════ -->
+<section class="section" id="how-it-works">
   <div class="section__inner">
-    <div class="section__label">Architecture</div>
-    <h2 class="section__title">Built to <em>scale</em> with you</h2>
-    <p class="section__desc">Three layers, clearly separated. Replace any piece without touching the rest of the system — just like puzzle pieces that only fit where they belong.</p>
-    <div class="split split--reverse">
-      <div class="split__visual reveal">
-        <div class="flow-wrap">
-          <svg class="flow-svg" viewBox="0 0 520 360" preserveAspectRatio="xMidYMid meet">
-            <path class="flow-link" d="M72 86 H180"></path>
-            <path class="flow-link" d="M72 148 H180"></path>
-            <path class="flow-link" d="M72 210 H180"></path>
-            <path class="flow-link" d="M448 86 H340"></path>
-            <path class="flow-link" d="M448 148 H340"></path>
-            <path class="flow-link" d="M448 210 H340"></path>
-            <path class="flow-bus" d="M180 70 V250"></path>
-            <path class="flow-bus" d="M340 70 V250"></path>
-            <path class="flow-trunk" d="M180 160 H340"></path>
-            <circle class="flow-pulse" cx="260" cy="160" r="4"></circle>
-          </svg>
-          <div class="flow-grid">
-            <div class="flow-col flow-col--clients">
-              <div class="flow-label">Core</div>
-              <div class="flow-node"><span>⚙️</span><span>Engine</span></div>
-              <div class="flow-node"><span>📡</span><span>Scanner</span></div>
-              <div class="flow-node"><span>📊</span><span>Capture</span></div>
-            </div>
-            <div class="flow-col flow-col--servers">
-              <div class="flow-label">Extends To</div>
-              <div class="flow-node"><span>🧩</span><span>Chunks</span></div>
-              <div class="flow-node"><span>🔌</span><span>Plugins</span></div>
-              <div class="flow-node"><span>🌍</span><span>Geo</span></div>
-            </div>
+    <div class="section__header reveal">
+      <div class="section__label">How it Works</div>
+      <h2 class="section__title">Three layers.<br><em>Clear separation.</em></h2>
+      <p class="section__desc">MyFi separates concerns into Core, Chunks, and Plugins — like puzzle pieces that only fit where they belong.</p>
+    </div>
+    <div class="split split--reverse reveal">
+      <div class="split__text">
+        <div class="steps">
+          <div class="step"><div class="step__num">1</div><div><h4>Core Engine</h4><p>Network discovery, traffic capture, and data persistence — the foundation that never changes.</p></div></div>
+          <div class="step"><div class="step__num">2</div><div><h4>Chunks (Logic)</h4><p>Business modules you enable or disable: Scanner, Monitor, Limiter, Alerts, Reports — each does one thing well.</p></div></div>
+          <div class="step"><div class="step__num">3</div><div><h4>Plugins (Capabilities)</h4><p>Technical tools that Chunks use: Telegram, Geolocation, Honeypot, Forensic Timeline — mix and match freely.</p></div></div>
+        </div>
+      </div>
+      <div class="split__visual">
+        <div class="terminal" style="width:100%;">
+          <div class="terminal__chrome">
+            <div class="terminal__dots"><span></span><span></span><span></span></div>
+            <span class="terminal__label">myfi chunk list</span>
+          </div>
+          <div class="terminal__body">
+            <span class="terminal__dim">── MYFI CHUNKS ── [ MÓDULOS ATIVOS ] ──</span><br>
+            <span style="color:var(--green);">[  ●  ]</span> TelegramNotifier&nbsp;&nbsp;1.0.0<br>
+            <span style="color:var(--green);">[  ●  ]</span> GeoLocate&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.0.0<br>
+            <span style="color:var(--green);">[  ●  ]</span> PhoneIntel&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.0.0<br>
+            <span style="color:var(--green);">[  ●  ]</span> UsernameIntel&nbsp;&nbsp;&nbsp;&nbsp;1.0.0
           </div>
         </div>
       </div>
-      <div class="split__text reveal">
-        <div class="section__label">How it works</div>
-        <h2 class="section__title" style="font-size:1.8rem;">Snap pieces together.<br><em>Own the stack.</em></h2>
-        <p style="color:var(--muted);font-size:0.9rem;line-height:1.8;margin-bottom:20px;">MyFi separates responsibilities into three clear layers. Add or remove layers without touching core code. Each combination produces a different, purpose-built tool.</p>
-        <ul style="list-style:none;font-size:0.9rem;color:var(--muted);">
-          <li style="padding:6px 0;border-bottom:1px solid var(--border);"><strong style="color:var(--text);">Core</strong> manages the network and exposes raw data</li>
-          <li style="padding:6px 0;border-bottom:1px solid var(--border);"><strong style="color:var(--text);">Chunks</strong> apply logic and business rules on top</li>
-          <li style="padding:6px 0;border-bottom:1px solid var(--border);"><strong style="color:var(--text);">Plugins</strong> provide external technical capabilities</li>
-          <li style="padding:6px 0;">Each piece fits exactly where it belongs</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════ SECURITY ═══════ -->
-<section class="section section--alt" id="security">
-  <div class="section__inner">
-    <div class="section__label">Security</div>
-    <h2 class="section__title">Trust nothing.<br><em>Verify everything.</em></h2>
-    <p class="section__desc">MyFi follows Zero Trust principles. Every device is untrusted until proven otherwise. Continuous monitoring, automatic alerts, and programmable limits keep your network safe.</p>
-    <div class="security-grid reveal">
-      <div class="security-card"><h4>🔒 Zero Trust Profiling</h4><p>Each device gets a trust score based on its behavior. Suspicious activity triggers automatic isolation.</p></div>
-      <div class="security-card"><h4>🍯 Honeypot Detection</h4><p>Deploy silent traps on your network. Any device that probes them is instantly flagged as a potential intruder.</p></div>
-      <div class="security-card"><h4>🛡️ Forensic Timeline</h4><p>Reconstruct exactly what any device did on your network — when it connected, what it accessed, and when it left.</p></div>
-      <div class="security-card"><h4>🔐 Telegram Alerts</h4><p>Instant notifications when anomalies are detected. Never miss a security event on your network again.</p></div>
     </div>
   </div>
 </section>
 
 <!-- ═══════ MODULES ═══════ -->
-<section class="section" id="modules">
+<section class="section section--alt" id="modules">
   <div class="section__inner">
-    <div class="section__label">Modules</div>
-    <h2 class="section__title">Mix & match your<br><em>perfect</em> setup</h2>
-    <p class="section__desc">Each Chunk and Plugin is a puzzle piece. Pick what you need, snap it in, and remove it whenever you want.</p>
+    <div class="section__header reveal">
+      <div class="section__label">Modules</div>
+      <h2 class="section__title">Mix &amp; match your<br><em>perfect</em> setup</h2>
+      <p class="section__desc">Each Chunk and Plugin is a puzzle piece. Pick what you need, snap it in, and remove it whenever you want.</p>
+    </div>
     <div class="card-grid reveal">
-      <div class="card"><div class="card__icon">📡</div><div class="card__title">Scanner</div><div class="card__desc">Discover all devices on your local network</div><span class="card__cmd" style="color:var(--cyan);">chunk</span></div>
+      <div class="card"><div class="card__icon">📡</div><div class="card__title">Scanner</div><div class="card__desc">Discover devices on your network</div><span class="card__cmd" style="color:var(--cyan);">chunk</span></div>
       <div class="card"><div class="card__icon">📊</div><div class="card__title">Monitor</div><div class="card__desc">Real-time traffic per device</div><span class="card__cmd" style="color:var(--cyan);">chunk</span></div>
-      <div class="card"><div class="card__icon">⏳</div><div class="card__title">Limiter</div><div class="card__desc">Set quotas and auto-block on exceed</div><span class="card__cmd" style="color:var(--cyan);">chunk</span></div>
-      <div class="card"><div class="card__icon">🔔</div><div class="card__title">Telegram</div><div class="card__desc">Instant alerts in your Telegram</div><span class="card__cmd" style="color:var(--green);">plugin</span></div>
-      <div class="card"><div class="card__icon">🌍</div><div class="card__title">Geo</div><div class="card__desc">Visual map of external connections</div><span class="card__cmd" style="color:var(--green);">plugin</span></div>
-      <div class="card"><div class="card__icon">🛡️</div><div class="card__title">Honeypot</div><div class="card__desc">Silent traps for network intruders</div><span class="card__cmd" style="color:var(--green);">plugin</span></div>
+      <div class="card"><div class="card__icon">⏳</div><div class="card__title">Limiter</div><div class="card__desc">Quotas and auto-blocking</div><span class="card__cmd" style="color:var(--cyan);">chunk</span></div>
+      <div class="card"><div class="card__icon">🔔</div><div class="card__title">Telegram</div><div class="card__desc">Instant alerts and reports</div><span class="card__cmd" style="color:var(--green);">plugin</span></div>
+      <div class="card"><div class="card__icon">🌍</div><div class="card__title">Geo</div><div class="card__desc">Map external connections</div><span class="card__cmd" style="color:var(--green);">plugin</span></div>
+      <div class="card"><div class="card__icon">🛡️</div><div class="card__title">Honeypot</div><div class="card__desc">Silent traps for intruders</div><span class="card__cmd" style="color:var(--green);">plugin</span></div>
     </div>
   </div>
 </section>
 
 <!-- ═══════ INSTALL ═══════ -->
-<section class="section section--alt" id="install-section">
+<section class="section" id="install">
   <div class="section__inner">
-    <div class="section__label">Install</div>
-    <h2 class="section__title">Up and running in<br><em>under 60 seconds</em></h2>
-    <div class="install-grid" style="margin-top:48px;">
-      <div class="reveal">
-        <div class="i-step"><div class="i-num">1</div><div><h4>Clone the repository</h4><p>Clone the project directly from GitHub to your machine.</p></div></div>
-        <div class="i-step"><div class="i-num">2</div><div><h4>Run setup</h4><p>The <code style="font-family:var(--fm);color:var(--cyan);font-size:0.85em;">make setup</code> command installs all dependencies automatically.</p></div></div>
-        <div class="i-step"><div class="i-num">3</div><div><h4>Configure MyFi</h4><p>The interactive wizard guides you through network and alert setup.</p></div></div>
-        <div class="i-step"><div class="i-num">4</div><div><h4>Run your first scan</h4><p>Discover every device on your network with a single command.</p></div></div>
-      </div>
-      <div class="reveal">
-        <div class="terminal">
-          <div class="terminal__chrome">
-            <div class="terminal__dots"><span></span><span></span><span></span></div>
-            <span class="terminal__label">bash · quick install</span>
-            <button class="terminal__copy" onclick="copyInstall()">copy</button>
-          </div>
-          <div class="terminal__body">
-            <div style="color:var(--muted);"># 1. Clone the project</div>
-            <div><span style="color:var(--green);">git clone</span> https://github.com/lioexp/myfi.git</div>
-            <div style="color:var(--muted);margin-top:10px;"># 2. Install dependencies</div>
-            <div><span style="color:var(--cyan);">cd</span> myfi <span style="color:var(--green);">&&</span> <span style="color:var(--green);">make setup</span></div>
-            <div style="color:var(--muted);margin-top:10px;"># 3. Run the setup wizard</div>
-            <div><span style="color:var(--text);">myfi setup</span></div>
-            <div style="color:var(--muted);margin-top:10px;"># 4. Your first scan</div>
-            <div><span style="color:var(--text);">myfi scan</span></div>
-          </div>
+    <div class="section__header reveal">
+      <div class="section__label">Install</div>
+      <h2 class="section__title">One command.<br><em>That's it.</em></h2>
+      <p class="section__desc">The installer handles everything — cloning, dependencies, and the interactive setup wizard.</p>
+    </div>
+    <div class="reveal install-terminal">
+      <div class="terminal">
+        <div class="terminal__chrome">
+          <div class="terminal__dots"><span></span><span></span><span></span></div>
+          <span class="terminal__label">bash</span>
+          <button class="terminal__copy" onclick="copyInstall()">copy</button>
+        </div>
+        <div class="terminal__body">
+          curl -fsSL https://raw.githubusercontent.com/lioexp/myfi/main/install.sh | bash
         </div>
       </div>
+      <p style="text-align:center; color:var(--muted); margin-top:16px; font-size:0.85rem;">
+        Python 3.8+ and Git required · Works on Linux, macOS, and WSL
+      </p>
     </div>
   </div>
 </section>
 
 <!-- ═══════ CTA ═══════ -->
 <section class="cta">
-  <div class="cta__badge reveal"><span></span>Active project · Contributions welcome</div>
+  <div class="cta__badge reveal"><span></span>Active project · MIT License</div>
   <h2 class="reveal">Take control of<br><em>your network today.</em></h2>
   <p class="reveal">Open source, free, and built by people who understand networks.</p>
   <div class="cta__btns reveal">
@@ -451,9 +351,9 @@ body { background:var(--bg); color:var(--text); font-family:var(--fh); line-heig
 <!-- ═══════ FOOTER ═══════ -->
 <footer class="footer">
   <div class="footer__inner">
-    <div class="footer__logo">
-      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAAB4CAYAAAB1ovlvAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAA3klEQVR4nO3dMQrCMBiA4fYOHXuEzp29gwcP3EHH7j2Nm5tb9w7uHj1AN0FwL7SFPBL4fuDyg0l/PnFIKaVSSqVUSqVUSqVUSqVUD2PP85im6Wzb9nmeZ4QQe3tWRewG7MQPDO+sqqD7vpNSHuZ9uBmGIWOM0b2qsxvwIufv2ff93eMREqsqdAJ28I5Jkvj8/4ecy/eVA1FV6QTs3ACLmOv94iiK7H1Dmjd3zn2e5Maq+lRIqXsA/gSA++33N/4HYI5ZrKrwCUgtG0II86OPmNPNBp2M16/RTUZtCKob/JSUbw9KKXUDZp0mItp6AvIAAAAASUVORK5CYII=" alt="MyFi" width="24" height="24">
-      MyFi
+    <div class="footer__brand">
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAAB4CAYAAAB1ovlvAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAA3klEQVR4nO3dMQrCMBiA4fYOHXuEzp29gwcP3EHH7j2Nm5tb9w7uHj1AN0FwL7SFPBL4fuDyg0l/PnFIKaVSSqVUSqVUSqVUSqVUD2PP85im6Wzb9nmeZ4QQe3tWRewG7MQPDO+sqqD7vpNSHuZ9uBmGIWOM0b2qsxvwIufv2ff93eMREqsqdAJ28I5Jkvj8/4ecy/eVA1FV6QTs3ACLmOv94iiK7H1Dmjd3zn2e5Maq+lRIqXsA/gSA++33N/4HYI5ZrKrwCUgtG0II86OPmNPNBp2M16/RTUZtCKob/JSUbw9KKXUDZp0mItp6AvIAAAAASUVORK5CYII=" alt="MyFi" width="22" height="22">
+      <span>MyFi</span>
     </div>
     <div class="footer__links">
       <a href="https://github.com/lioexp/myfi" target="_blank">GitHub</a>
@@ -465,21 +365,29 @@ body { background:var(--bg); color:var(--text); font-family:var(--fh); line-heig
 </footer>
 
 <script>
-/* Reveal on scroll */
+function copyInstall() {
+  const text = "curl -fsSL https://raw.githubusercontent.com/lioexp/myfi/main/install.sh | bash";
+  navigator.clipboard.writeText(text).then(() => {
+    const buttons = document.querySelectorAll('.terminal__copy');
+    buttons.forEach(btn => {
+      btn.textContent = 'copied!';
+      btn.style.color = 'var(--green)';
+      btn.style.borderColor = 'var(--green)';
+    });
+    setTimeout(() => {
+      buttons.forEach(btn => {
+        btn.textContent = 'copy';
+        btn.style.color = '';
+        btn.style.borderColor = '';
+      });
+    }, 2000);
+  });
+}
+
 const observer = new IntersectionObserver(entries => {
   entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('visible'); observer.unobserve(e.target); } });
 }, { threshold: 0.1 });
 document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-
-/* Copy install commands */
-function copyInstall() {
-  const t = "git clone https://github.com/lioexp/myfi.git && cd myfi && make setup && myfi setup && myfi scan";
-  navigator.clipboard.writeText(t).then(() => {
-    const btns = document.querySelectorAll('.terminal__copy');
-    btns.forEach(b => { b.textContent = 'copied!'; b.style.color = 'var(--green)'; b.style.borderColor = 'var(--green)'; });
-    setTimeout(() => btns.forEach(b => { b.textContent = 'copy'; b.style.color = ''; b.style.borderColor = ''; }), 2000);
-  });
-}
 </script>
 </body>
 </html>
