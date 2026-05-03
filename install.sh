@@ -1,10 +1,4 @@
-#!/usr/bin/env bash
 set -euo pipefail
-
-# ═══════════════════════════════════════════════════════════
-# MyFi Installer
-# One-liner: curl -fsSL https://raw.githubusercontent.com/lioexp/myfi/main/install.sh | bash
-# ═══════════════════════════════════════════════════════════
 
 CYAN='\033[0;36m'
 GREEN='\033[0;32m'
@@ -13,7 +7,7 @@ RED='\033[0;31m'
 NC='\033[0m'
 
 REPO_URL="https://github.com/lioexp/myfi.git"
-INSTALL_DIR="$HOME/.myfi"
+INSTALL_DIR="$HOME/myfi"
 
 echo -e "${CYAN}"
 echo "   ███╗   ███╗██╗   ██╗███████╗██╗"
@@ -46,9 +40,22 @@ echo -e "${GREEN}✓${NC} Git encontrado"
 
 # ─── Clone or update repository ───
 if [ -d "$INSTALL_DIR" ]; then
-    echo -e "${YELLOW}⚠${NC} MyFi já existe em $INSTALL_DIR. A atualizar..."
-    cd "$INSTALL_DIR"
-    git pull --quiet
+    if git -C "$INSTALL_DIR" rev-parse --git-dir > /dev/null 2>&1; then
+        echo -e "${YELLOW}⚠${NC} MyFi já existe em $INSTALL_DIR. A atualizar..."
+        cd "$INSTALL_DIR"
+        if ! git pull --quiet; then
+            echo -e "${YELLOW}⚠${NC} Não foi possível atualizar. A recriar..."
+            cd "$HOME"
+            rm -rf "$INSTALL_DIR"
+            git clone --quiet "$REPO_URL" "$INSTALL_DIR"
+            cd "$INSTALL_DIR"
+        fi
+    else
+        echo -e "${YELLOW}⚠${NC} A pasta $INSTALL_DIR existe mas não é um repositório git. A recriar..."
+        rm -rf "$INSTALL_DIR"
+        git clone --quiet "$REPO_URL" "$INSTALL_DIR"
+        cd "$INSTALL_DIR"
+    fi
 else
     echo -e "${CYAN}↓${NC} A clonar MyFi..."
     git clone --quiet "$REPO_URL" "$INSTALL_DIR"
