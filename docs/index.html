@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MyFi — The Future of Networks is Modular</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%2300AAFF' d='M5 12.55a11 11 0 0 1 14.08 0'/%3E%3Cpath fill='%2300AAFF' d='M1.42 9a16 16 0 0 1 21.16 0'/%3E%3Cpath fill='%2300AAFF' d='M8.53 16.11a6 6 0 0 1 6.95 0'/%3E%3Ccircle fill='%2300AAFF' cx='12' cy='20' r='1'/%3E%3C/svg%3E">
+<link rel="icon" href="assets/logo.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=DM+Mono:wght@400;500&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -70,12 +70,18 @@ nav {
 .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
 .logo-mark {
   width: 36px; height: 36px; border-radius: 9px;
-  background: linear-gradient(135deg, rgba(0,170,255,0.2), rgba(0,85,170,0.3));
+  background: linear-gradient(135deg, rgba(0,170,255,0.15), rgba(0,85,170,0.2));
   border: 1px solid var(--border-bright);
   display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
   box-shadow: 0 0 20px rgba(0,170,255,0.2);
 }
-.logo-mark svg { width: 20px; height: 20px; }
+/* Real logo image in nav/footer */
+.logo-mark img {
+  width: 26px; height: 26px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 4px rgba(0,170,255,0.5));
+}
 .logo-text { font-family: var(--fh); font-size: 1.5rem; font-weight: 900; letter-spacing: 0.02em; color: var(--text); }
 .logo-text span { color: var(--cyan); }
 .nav-links { display: flex; align-items: center; gap: 4px; }
@@ -158,7 +164,7 @@ nav {
 .hm-val { color: var(--cyan); }
 .hm-sep { color: rgba(255,255,255,0.1); }
 
-/* ── HERO RIGHT — Mascot ── */
+/* ── HERO RIGHT — Real mascot ── */
 .hero-right {
   position: relative; display: flex; align-items: center; justify-content: center;
   animation: fadeInUp .8s .3s ease both;
@@ -166,19 +172,29 @@ nav {
 .mascot-ring { position: relative; width: 340px; height: 340px; }
 .mascot-glow {
   position: absolute; inset: -40px;
-  background: radial-gradient(circle, rgba(0,170,255,0.15) 0%, transparent 65%);
+  background: radial-gradient(circle, rgba(0,170,255,0.18) 0%, transparent 65%);
   border-radius: 50%; animation: breathe 4s ease-in-out infinite;
 }
 @keyframes breathe { 0%,100%{transform:scale(1);opacity:.6}50%{transform:scale(1.1);opacity:1} }
 .mascot-circle {
   width: 340px; height: 340px; border-radius: 50%;
-  background: linear-gradient(145deg, rgba(0,170,255,0.08), rgba(0,50,100,0.2));
+  background: linear-gradient(145deg, rgba(0,170,255,0.07), rgba(0,50,100,0.18));
   border: 1px solid var(--border-bright);
   display: flex; align-items: center; justify-content: center;
   position: relative;
-  box-shadow: 0 0 80px rgba(0,170,255,0.1), inset 0 0 60px rgba(0,0,0,0.4);
+  box-shadow: 0 0 80px rgba(0,170,255,0.12), inset 0 0 60px rgba(0,0,0,0.4);
 }
-.mascot-svg { width: 200px; height: 200px; filter: drop-shadow(0 0 24px rgba(0,170,255,0.6)); }
+
+/* ── Real mascot image ── */
+.mascot-img {
+  width: 230px; height: 230px;
+  object-fit: contain;
+  /* Preserve the cyan glow aesthetic from the brand */
+  filter: drop-shadow(0 0 28px rgba(0,170,255,0.7)) drop-shadow(0 0 8px rgba(0,200,255,0.4));
+  position: relative; z-index: 2;
+}
+
+/* Orbiting puzzle pieces */
 .orbit-piece { position: absolute; animation: orbit linear infinite; }
 .op1 { width: 58px; top: -8px; left: 50%; margin-left: -29px; animation-duration: 18s; transform-origin: 29px 178px; }
 .op2 { width: 52px; top: 50%; right: -12px; margin-top: -26px; animation-duration: 22s; animation-delay: -6s; transform-origin: -158px 26px; }
@@ -258,6 +274,13 @@ nav {
 .pz-core { width: 140px; height: 140px; background: linear-gradient(135deg, rgba(0,170,255,0.15), rgba(0,50,100,0.25)); border: 2px solid var(--border-bright); border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 0 60px rgba(0,170,255,0.2), inset 0 0 40px rgba(0,0,0,0.3); }
 .pz-core-label { font-family: var(--fh); font-size: 1.1rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text); }
 .pz-core-sub { font-family: var(--fm); font-size: 0.6rem; color: var(--cyan); }
+
+/* Real logo inside puzzle core */
+.pz-core-img {
+  width: 48px; height: 48px; object-fit: contain;
+  filter: drop-shadow(0 0 10px rgba(0,170,255,0.6));
+}
+
 .pz-piece { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
 .pz-piece-label { font-family: var(--fh); font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; }
 .pz-piece-sub { font-family: var(--fm); font-size: 0.6rem; color: var(--muted); }
@@ -324,22 +347,6 @@ nav {
 .t-cursor { display: inline-block; width: 8px; height: 15px; background: var(--cyan); vertical-align: middle; animation: blink 1.1s step-end infinite; }
 @keyframes blink { 0%,100%{opacity:1}50%{opacity:0} }
 
-/* ═══════ INSTALL TABS ═══════ */
-.install-tabs { display: flex; justify-content: center; gap: 0; margin-bottom: 0; }
-.install-tab {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 12px 28px; border: 1px solid var(--border); border-bottom: none;
-  background: var(--panel); color: var(--muted); cursor: pointer;
-  font-family: var(--fm); font-size: 0.78rem; font-weight: 500;
-  transition: all 0.22s; border-radius: 10px 10px 0 0;
-}
-.install-tab.active {
-  background: #06090f; color: var(--cyan); border-color: var(--border-bright);
-}
-.install-tab:first-child { border-radius: 10px 0 0 0; }
-.install-tab:last-child { border-radius: 0 10px 0 0; border-left: none; }
-.install-tab:not(.active):hover { background: var(--panel2); color: var(--text); }
-
 /* ═══════ CTA ═══════ */
 .cta-section { padding: 140px 0; text-align: center; position: relative; overflow: hidden; }
 .cta-bg { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 60%, rgba(0,170,255,0.07) 0%, transparent 60%); pointer-events: none; }
@@ -361,7 +368,7 @@ footer { padding: 36px 0; border-top: 1px solid var(--border); position: relativ
 .footer-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
 .footer-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
 .footer-logo .logo-mark { width: 28px; height: 28px; }
-.footer-logo .logo-mark svg { width: 16px; height: 16px; }
+.footer-logo .logo-mark img { width: 20px; height: 20px; }
 .footer-logo-text { font-family: var(--fh); font-size: 1.1rem; font-weight: 900; color: var(--muted); }
 .footer-logo-text span { color: var(--cyan); }
 .footer-links { display: flex; gap: 20px; }
@@ -410,7 +417,8 @@ footer { padding: 36px 0; border-top: 1px solid var(--border); position: relativ
     <div class="nav-inner">
       <a href="#" class="logo">
         <div class="logo-mark">
-          <svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.4"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="var(--cyan)"/></svg>
+          <!-- ✅ Real logo from assets/logo.png -->
+          <img src="assets/logo.png" alt="MyFi logo">
         </div>
         <div class="logo-text">My<span>Fi</span></div>
       </a>
@@ -458,12 +466,16 @@ footer { padding: 36px 0; border-top: 1px solid var(--border); position: relativ
         </div>
       </div>
 
+      <!-- HERO RIGHT — Real mascot + orbiting puzzle pieces -->
       <div class="hero-right">
         <div class="mascot-ring">
           <div class="mascot-glow"></div>
           <div class="mascot-circle">
-            <img src="assets/logo1.png" alt="MyFi Orb">
+            <!-- ✅ Real mascot from assets/logo1.png -->
+            <img src="assets/logo1.png" alt="MyFi mascot" class="mascot-img">
           </div>
+
+          <!-- Orbiting puzzle pieces (unchanged) -->
           <div class="orbit-piece op1">
             <svg width="58" height="58" viewBox="0 0 60 60" fill="none">
               <rect x="8" y="8" width="44" height="44" rx="8" fill="rgba(0,170,255,0.12)" stroke="#00AAFF" stroke-width="1.2"/>
@@ -498,6 +510,7 @@ footer { padding: 36px 0; border-top: 1px solid var(--border); position: relativ
           </div>
         </div>
       </div>
+
     </div>
   </div>
 </section>
@@ -661,9 +674,10 @@ footer { padding: 36px 0; border-top: 1px solid var(--border); position: relativ
           <div class="pz-piece-sub">chunk</div>
         </div>
 
+        <!-- ✅ Real logo inside the Core puzzle center -->
         <div class="puzzle-center">
           <div class="pz-core">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <img src="assets/logo.png" alt="MyFi Core" class="pz-core-img">
             <div class="pz-core-label">Core</div>
             <div class="pz-core-sub">engine</div>
           </div>
@@ -735,38 +749,34 @@ footer { padding: 36px 0; border-top: 1px solid var(--border); position: relativ
     <div class="section-header reveal" style="text-align:center;">
       <div class="section-tag" style="justify-content:center;">Install</div>
       <h2 class="section-title" style="text-align:center;">Up and running<br>in <em>under 60 seconds</em></h2>
-      <p class="section-sub" style="margin:0 auto; text-align:center;">Two ways to install. Pick what works best for you.</p>
     </div>
-
-    <!-- Seletor de método de instalação -->
-    <div class="reveal" style="max-width:700px; margin: 48px auto 0;">
-      <!-- Tabs -->
-      <div class="install-tabs">
-        <button id="tabBash" class="install-tab active" onclick="switchInstallTab('bash')">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M6 8l4 4-4 4"/><line x1="14" y1="16" x2="18" y2="16"/></svg>
-          Bash (curl)
-        </button>
-        <button id="tabGit" class="install-tab" onclick="switchInstallTab('git')">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="18" r="3"/><path d="M12 2v4m0 4v4m0 4v4"/><line x1="6" y1="6" x2="6.01" y2="6"/></svg>
-          Git Clone
-        </button>
+    <div class="install-layout">
+      <div class="reveal">
+        <div class="i-step"><div class="i-num">1</div><div><h4>Clone the repository</h4><p>Pull the project from GitHub directly onto your machine.</p></div></div>
+        <div class="i-step"><div class="i-num">2</div><div><h4>Run the setup</h4><p><code>make setup</code> installs all dependencies automatically.</p></div></div>
+        <div class="i-step"><div class="i-num">3</div><div><h4>Configure MyFi</h4><p>The interactive assistant guides you through network and alert setup.</p></div></div>
+        <div class="i-step"><div class="i-num">4</div><div><h4>Run your first scan</h4><p>Discover every device on your network with a single command.</p></div></div>
       </div>
-
-      <!-- Terminal com conteúdo dinâmico -->
-      <div class="terminal-card" style="border-radius: 0 0 14px 14px;">
-        <div class="terminal-topbar">
-          <div class="t-dots"><div class="t-dot r"></div><div class="t-dot y"></div><div class="t-dot g"></div></div>
-          <div class="t-title" id="installTitle">bash — one‑liner</div>
-          <button class="t-copy-btn" id="installCopyBtn" onclick="copyInstallMethod()">copy</button>
-        </div>
-        <div class="terminal-body" id="installCode">
-          <span class="t-ok">curl -fsSL https://raw.githubusercontent.com/lioexp/myfi/main/install.sh | bash</span>
+      <div class="reveal reveal-d2">
+        <div class="terminal-card">
+          <div class="terminal-topbar">
+            <div class="t-dots"><div class="t-dot r"></div><div class="t-dot y"></div><div class="t-dot g"></div></div>
+            <div class="t-title">bash — myfi install</div>
+            <button class="t-copy-btn" onclick="copyInstall(this)">copy</button>
+          </div>
+          <div class="terminal-body" id="install-code">
+            <span style="color:#2A3660"># Clone the project</span><br>
+            <span class="t-cmd">git clone</span> https://github.com/lioexp/myfi.git<br><br>
+            <span style="color:#2A3660"># Install dependencies</span><br>
+            <span style="color:#FFB400">cd</span> myfi <span class="t-cmd">&amp;&amp; make setup</span><br><br>
+            <span style="color:#2A3660"># Run the setup assistant</span><br>
+            <span class="t-ok">myfi setup</span><br><br>
+            <span style="color:#2A3660"># Scan your network</span><br>
+            <span class="t-ok">myfi scan</span><br><br>
+            <span style="color:#2A3660">~</span> <span class="t-cursor"></span>
+          </div>
         </div>
       </div>
-
-      <p style="text-align:center; color:var(--muted); margin-top:12px; font-size:0.78rem;">
-        Python 3.8+ and Git required · Works on Linux, macOS, and WSL
-      </p>
     </div>
   </div>
 </section>
@@ -802,7 +812,8 @@ footer { padding: 36px 0; border-top: 1px solid var(--border); position: relativ
     <div class="footer-inner">
       <div class="footer-logo">
         <div class="logo-mark">
-          <svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.4"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="var(--cyan)"/></svg>
+          <!-- ✅ Real logo in footer -->
+          <img src="assets/logo.png" alt="MyFi logo">
         </div>
         <div class="footer-logo-text">My<span>Fi</span></div>
       </div>
@@ -857,32 +868,8 @@ const obs = new IntersectionObserver(entries => {
 }, { threshold: 0.1 });
 document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
 
-/* ─── INSTALL TAB SWITCHER ─── */
-const installContents = {
-  bash: {
-    title: 'bash — one‑liner',
-    code: '<span class="t-ok">curl -fsSL https://raw.githubusercontent.com/lioexp/myfi/main/install.sh | bash</span>',
-    copy: 'curl -fsSL https://raw.githubusercontent.com/lioexp/myfi/main/install.sh | bash'
-  },
-  git: {
-    title: 'bash — git clone',
-    code: '<span style="color:#2A3660"># Clone the project</span><br><span class="t-cmd">git clone</span> https://github.com/lioexp/myfi.git<br><br><span style="color:#2A3660"># Install dependencies</span><br><span style="color:#FFB400">cd</span> myfi <span class="t-cmd">&amp;&amp; make setup</span><br><br><span style="color:#2A3660"># Run the setup assistant</span><br><span class="t-ok">myfi setup</span><br><br><span style="color:#2A3660"># Scan your network</span><br><span class="t-ok">myfi scan</span><br><br><span style="color:#2A3660">~</span> <span class="t-cursor"></span>',
-    copy: 'git clone https://github.com/lioexp/myfi.git\ncd myfi && make setup\nmyfi setup\nmyfi scan'
-  }
-};
-let currentInstallMethod = 'bash';
-
-function switchInstallTab(method) {
-  currentInstallMethod = method;
-  document.getElementById('tabBash').classList.toggle('active', method === 'bash');
-  document.getElementById('tabGit').classList.toggle('active', method === 'git');
-  document.getElementById('installTitle').textContent = installContents[method].title;
-  document.getElementById('installCode').innerHTML = installContents[method].code;
-}
-
-function copyInstallMethod() {
-  navigator.clipboard.writeText(installContents[currentInstallMethod].copy).then(() => {
-    const btn = document.getElementById('installCopyBtn');
+function copyInstall(btn) {
+  navigator.clipboard.writeText('git clone https://github.com/lioexp/myfi.git\ncd myfi && make setup\nmyfi setup\nmyfi scan').then(() => {
     const orig = btn.textContent;
     btn.textContent = 'copied!'; btn.style.color = 'var(--green)'; btn.style.borderColor = 'var(--green)';
     setTimeout(() => { btn.textContent = orig; btn.style.color = ''; btn.style.borderColor = ''; }, 2000);
