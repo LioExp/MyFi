@@ -14,34 +14,21 @@ from time import sleep
 from typing import Any
 
 import argparse
-from rich.console import Console
 from rich.live import Live
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 from rich.text import Text
-from rich.theme import Theme
 
 from myfi.core.config_manager import ConfigManager
 from myfi.core.engine import ChunkEngine
 from myfi.core.scanner import Scanner
 from myfi.chunks.extras.telegram_notifier import TelegramNotifierChunk
 from myfi.ui.cli.setup_wizard import SetupWizard
+from myfi.ui.cli.theme import make_console
 
-# ════════════════════════════════════════════════════════════════
-# PALETTE — MyFi original (cyan, neon green, dark background)
-# ════════════════════════════════════════════════════════════════
-_THEME = Theme({
-    "myfi.cyan":       "color(51)",    # #00A6FF — primary accent, prompts
-    "myfi.green":      "color(48)",    # #00FF99 — success, online
-    "myfi.amber":      "color(215)",   # #f0b060 — warnings
-    "myfi.blue":       "color(69)",    # #5b9bd5 — paths, external IPs
-    "myfi.red":        "color(167)",   # #e06c75 — errors, critical
-    "myfi.dim":        "color(240)",   # labels, metadata
-    "myfi.body":       "color(151)",   # #a8c8a8 — body text
-})
-
-console = Console(theme=_THEME)
+console = make_console()
 logger  = logging.getLogger(__name__)
+
 
 # ════════════════════════════════════════════════════════════════
 # ENGINE
@@ -60,19 +47,19 @@ def _create_engine() -> ChunkEngine:
 
 def discover_and_register_chunks(engine: ChunkEngine, subparsers: Any) -> None:
     chunks_dir = Path(__file__).resolve().parent.parent.parent / "chunks" / "extras"
-    for item in chunks_dir.iterdir():
+    for item in sorted(chunks_dir.iterdir()):          # sorted → ordem determinista
         if item.is_dir() and (item / "__init__.py").exists():
             try:
                 mod = importlib.import_module(f"myfi.chunks.extras.{item.name}")
                 if hasattr(mod, "register_chunk"):
                     mod.register_chunk(engine, subparsers)
-                    logger.info(f"Chunk '{item.name}' registered.")
+                    logger.info(f"Chunk '{item.name}' registado.")
             except Exception as e:
                 logger.error(f"Chunk '{item.name}': {e}")
 
 
 # ════════════════════════════════════════════════════════════════
-# FORMATTING
+# FORMATAÇÃO
 # ════════════════════════════════════════════════════════════════
 
 def _fmt_bytes(n: int) -> str:
@@ -84,7 +71,6 @@ def _fmt_bytes(n: int) -> str:
 
 
 def _fmt_bar(current: int, limit: int, width: int = 10) -> str:
-    """Text progress bar, no emojis."""
     if limit <= 0:
         return "[myfi.dim][ N/A ][/myfi.dim]"
     ratio  = min(current / limit, 1.0)
@@ -116,7 +102,9 @@ def _count_online() -> int:
     try:
         db     = Database()
         cutoff = (datetime.now() - timedelta(minutes=10)).strftime("%Y-%m-%d %H:%M:%S")
-        db.cursor.execute("SELECT COUNT(*) FROM devices WHERE last_seen >= ?", (cutoff,))
+        db.cursor.execute(
+            "SELECT COUNT(*) FROM devices WHERE last_seen >= ?", (cutoff,)
+        )
         n = db.cursor.fetchone()[0]
         db.close()
         return n
@@ -138,7 +126,9 @@ def _count_pending() -> int:
 def _db_ok() -> bool:
     from myfi.db.database import Database
     try:
-        db = Database(); db.close(); return True
+        db = Database()
+        db.close()
+        return True
     except Exception:
         return False
 
@@ -183,48 +173,50 @@ def _banner() -> None:
 
 def show_splash_screen(engine: ChunkEngine) -> None:
     """
-    Faithful layout:
-
+    Layout:
         banner
-        ── MyFi v3.0.0-dev ────────────
+        ── MyFi v3.0.0-dev ──────────────────
           interface  wlan0    ip  x.x.x.x    devices  N online
           chunks     N active    alerts  N pending    db  ok | error
     """
     console.clear()
     _banner()
 
-    config    = ConfigManager()
-    iface     = config.get("interface", "wlan0")
-    ip        = _get_ip(iface)
-    n_dev     = _count_online()
-    n_chunks  = len(engine._registry)
-    n_alerts  = _count_pending()
-    db_status = "[myfi.green]ok[/myfi.green]" if _db_ok() else "[myfi.red]error[/myfi.red]"
+    # config já existe no engine — sem nova instância
+    config   = engine.config
+    iface    = config.get("interface", "wlan0")
+    ip       = _get_ip(iface)
+    n_dev    = _count_online()
+    n_chunks = len(engine._registry)
+    n_alerts = _count_pending()
+    db_str   = (
+        "[myfi.green]ok[/myfi.green]"
+        if _db_ok()
+        else "[myfi.red]error[/myfi.red]"
+    )
 
     console.rule(
         f"[bold myfi.cyan]MyFi[/bold myfi.cyan] [myfi.dim]v3.0.0-dev[/myfi.dim]",
         style="myfi.cyan",
     )
 
-    # line 1
     console.print(
         f"  [myfi.dim]interface[/myfi.dim]  [myfi.cyan]{iface}[/myfi.cyan]"
         f"    [myfi.dim]ip[/myfi.dim]  [myfi.body]{ip}[/myfi.body]"
-        f"    [myfi.dim]devices[/myfi.dim]  [bold myfi.green]{n_dev} online[/bold myfi.green]"
+        f"    [myfi.dim]devices[/myfi.dim]  "
+        f"[bold myfi.green]{n_dev} online[/bold myfi.green]"
     )
 
-    # line 2
-    alert_val = (
+    alert_str = (
         f"[bold myfi.amber]{n_alerts} pending[/bold myfi.amber]"
         if n_alerts > 0
         else "[myfi.dim]none[/myfi.dim]"
     )
     console.print(
         f"  [myfi.dim]chunks[/myfi.dim]  [myfi.cyan]{n_chunks} active[/myfi.cyan]"
-        f"    [myfi.dim]alerts[/myfi.dim]  {alert_val}"
-        f"    [myfi.dim]db[/myfi.dim]  {db_status}"
+        f"    [myfi.dim]alerts[/myfi.dim]  {alert_str}"
+        f"    [myfi.dim]db[/myfi.dim]  {db_str}"
     )
-
     console.print()
 
 
@@ -237,52 +229,55 @@ def show_help(engine: ChunkEngine) -> None:
     _banner()
 
     table = Table(show_header=False, box=None, padding=(0, 2))
-    table.add_column(style="myfi.cyan",  width=14)
+    table.add_column(style="myfi.cyan", width=14)
     table.add_column(style="myfi.body")
-    table.add_column(style="myfi.dim",   width=44)
+    table.add_column(style="myfi.dim",  width=44)
 
-    core = [
-        ("scan",     "Discover devices on the network (ARP)",        "scan"),
-        ("monitor",  "Traffic monitoring",                            "monitor start [--live]"),
-        ("limit",    "Manage usage limits",                           "limit set --mac <MAC> --daily <MB>"),
-        ("chunk",    "List / enable / disable Chunks",                "chunk list"),
-        ("workflow", "Run a workflow",                                "workflow run <name>"),
-        ("web",      "Start web interface",                           "web"),
-        ("setup",    "Configuration wizard",                          "setup"),
-        ("exit",     "Exit MyFi",                                     ""),
-    ]
-    for cmd, desc, ex in core:
+    for cmd, desc, ex in [
+        ("scan",     "Discover devices on the network (ARP)",  "scan"),
+        ("monitor",  "Traffic monitoring",                     "monitor start [--live]"),
+        ("limit",    "Manage usage limits",                    "limit set --mac <MAC> --daily <MB>"),
+        ("chunk",    "List / enable / disable Chunks",         "chunk list"),
+        ("workflow", "Run a workflow",                         "workflow run <name>"),
+        ("web",      "Start web interface",                    "web"),
+        ("setup",    "Configuration wizard",                   "setup"),
+        ("exit",     "Exit MyFi",                              ""),
+    ]:
         table.add_row(cmd, desc, ex)
 
     for name, chunk in engine._registry.items():
         m    = chunk.manifest()
         cmds = m.get("cli_commands", [name.lower()])
-        table.add_row(name.lower(), m.get("description", name), cmds[0] if cmds else name.lower())
+        table.add_row(
+            name.lower(),
+            m.get("description", name),
+            cmds[0] if cmds else name.lower(),
+        )
 
     console.print(table)
     console.print()
 
 
 # ════════════════════════════════════════════════════════════════
-# COMMANDS
+# COMANDOS
 # ════════════════════════════════════════════════════════════════
 
 def cmd_setup(args: Any, engine: ChunkEngine) -> None:
-    msgs = [
+    iface = engine.config.get("interface", "wlan0")
+    for msg in [
         "[  OK  ] Loading Chunks...",
-        "[  OK  ] Mapping Interface: wlan0",
+        f"[  OK  ] Mapping Interface: {iface}",
         "[  OK  ] Establishing Secure Channel: Telegram @MyFi_Bot\n",
-    ]
-    for m in msgs:
-        console.print(f"[myfi.green]{m}[/myfi.green]")
+    ]:
+        console.print(f"[myfi.green]{msg}[/myfi.green]")
         sleep(0.8)
-    SetupWizard(ConfigManager()).run()
+    SetupWizard(engine.config).run()
 
 
 def cmd_scan(args: Any, engine: ChunkEngine) -> None:
     from myfi.db.database import Database
 
-    config = ConfigManager()
+    config = engine.config
     if not config.is_configured():
         console.print("[myfi.red][ FAIL ] MyFi is not configured.[/myfi.red]")
         console.print("[myfi.amber]         Run: myfi setup[/myfi.amber]")
@@ -291,20 +286,18 @@ def cmd_scan(args: Any, engine: ChunkEngine) -> None:
     scanner  = Scanner(config)
     start_ts = datetime.now()
 
-    with console.status(
-        "[myfi.cyan]Scanning local network...[/myfi.cyan]", spinner="dots"
-    ):
+    with console.status("[myfi.cyan]Scanning local network...[/myfi.cyan]", spinner="dots"):
         devices = scanner.scan()
 
     if not devices:
         console.print("[myfi.amber][ WARN ] No devices found in ARP table.[/myfi.amber]")
         return
 
-    db          = Database()
-    today       = str(datetime.now().date())
-    limits_map  = {l["mac"]: l["bytes_max"] for l in db.get_limits()}
-    known_macs  = {d["mac"] for d in db.get_all_devices()}
-    elapsed     = (datetime.now() - start_ts).total_seconds()
+    db         = Database()
+    today      = str(datetime.now().date())
+    limits_map = {l["mac"]: l["bytes_max"] for l in db.get_limits()}
+    known_macs = {d["mac"] for d in db.get_all_devices()}
+    elapsed    = (datetime.now() - start_ts).total_seconds()
 
     console.print(
         f"\n[myfi.dim]── NETWORK MAP {'─' * 28} "
@@ -329,7 +322,6 @@ def cmd_scan(args: Any, engine: ChunkEngine) -> None:
         used    = traffic["bytes_sent"] + traffic["bytes_recv"]
         limit   = limits_map.get(mac, 0)
 
-        # status badge
         if "gateway" in (hostname or "").lower():
             status_str   = "[myfi.cyan][GATEWAY][/myfi.cyan]"
             hostname_str = f"[myfi.cyan]{hostname}[/myfi.cyan]"
@@ -341,10 +333,9 @@ def cmd_scan(args: Any, engine: ChunkEngine) -> None:
             status_str   = "[myfi.green][ ONLINE][/myfi.green]"
             hostname_str = f"[myfi.body]{hostname}[/myfi.body]"
 
-        # bar + state (no emojis)
         if limit > 0:
-            ratio  = used / limit
-            bar    = _fmt_bar(used, limit)
+            ratio = used / limit
+            bar   = _fmt_bar(used, limit)
             if ratio >= 1.0:
                 state = "[bold myfi.red]CRITICAL[/bold myfi.red]"
             elif ratio >= 0.8:
@@ -354,17 +345,16 @@ def cmd_scan(args: Any, engine: ChunkEngine) -> None:
         else:
             bar, state = "[myfi.dim][ N/A ][/myfi.dim]", "[myfi.dim]OK[/myfi.dim]"
 
-        table.add_row(status_str, hostname_str, f"[myfi.blue]{ip}[/myfi.blue]", bar, state)
+        table.add_row(
+            status_str, hostname_str,
+            f"[myfi.blue]{ip}[/myfi.blue]", bar, state,
+        )
 
     db.close()
     console.print(table)
 
-    # footer
     footer = f"[myfi.dim]Total: {len(devices)} devices  ·  scan in {elapsed:.1f}s"
-    if unknown_count:
-        footer += f"  ·  {unknown_count} unknown[/myfi.dim]"
-    else:
-        footer += "[/myfi.dim]"
+    footer += f"  ·  {unknown_count} unknown[/myfi.dim]" if unknown_count else "[/myfi.dim]"
     console.print(footer)
 
     scanner.save_to_db(devices)
@@ -372,28 +362,60 @@ def cmd_scan(args: Any, engine: ChunkEngine) -> None:
 
 def cmd_monitor(args: Any, engine: ChunkEngine) -> None:
     from myfi.core.MonitorCore import MonitorCore
+    from threading import Thread
 
-    monitor = MonitorCore(ConfigManager())
+    monitor = MonitorCore(engine.config)
 
     if args.monitor_command == "start":
-        live = getattr(args, "live", False)
+        live  = getattr(args, "live", False)
+        iface = engine.config.get("interface", "wlan0")
+
+        # verificar se já está a correr
+        if monitor.running:
+            console.print("[myfi.amber][ WARN ] Monitor already running.[/myfi.amber]")
+            return
+
         if live:
             console.print(
-                "[myfi.cyan]LIVE STREAM[/myfi.cyan] [myfi.dim]wlan0"
-                "  ──────────────  ctrl+c to stop[/myfi.dim]"
+                f"[myfi.cyan]LIVE STREAM[/myfi.cyan] "
+                f"[myfi.dim]{iface}  ──────────────  ctrl+c to stop[/myfi.dim]"
             )
-            with console.status("") as status:
-                def _cb(recv, sent, s_recv, s_sent):
-                    status.update(
-                        f"[myfi.dim]down[/myfi.dim]  [myfi.green]{_fmt_bytes(recv)}/s[/myfi.green]"
-                        f"  [myfi.dim]up[/myfi.dim]  [myfi.cyan]{_fmt_bytes(sent)}/s[/myfi.cyan]"
-                        f"  [myfi.dim]|  session down[/myfi.dim] {_fmt_bytes(s_recv)}"
-                        f"  [myfi.dim]up[/myfi.dim] {_fmt_bytes(s_sent)}"
-                    )
-                monitor.start(live_mode=True, interval=1, status_callback=_cb)
+            # live mode: bloqueante com status — o utilizador sabe que está a correr
+            try:
+                with console.status("") as status:
+                    def _cb(recv, sent, s_recv, s_sent):
+                        status.update(
+                            f"[myfi.dim]down[/myfi.dim]  "
+                            f"[myfi.green]{_fmt_bytes(recv)}/s[/myfi.green]"
+                            f"  [myfi.dim]up[/myfi.dim]  "
+                            f"[myfi.cyan]{_fmt_bytes(sent)}/s[/myfi.cyan]"
+                            f"  [myfi.dim]|  session down[/myfi.dim] {_fmt_bytes(s_recv)}"
+                            f"  [myfi.dim]up[/myfi.dim] {_fmt_bytes(s_sent)}"
+                        )
+                    monitor.start(live_mode=True, interval=1, status_callback=_cb)
+            except KeyboardInterrupt:
+                monitor.stop()
+                console.print("\n[myfi.dim]Live stream stopped.[/myfi.dim]")
+
         else:
-            console.print("[myfi.green][  >>  ] Monitor started (5 min interval).[/myfi.green]")
-            monitor.start(live_mode=False, interval=300)
+            # background thread — devolve controlo à shell imediatamente
+            def _run():
+                try:
+                    monitor.start(live_mode=False, interval=300)
+                except PermissionError as e:
+                    console.print(f"[myfi.red][ FAIL ] {e}[/myfi.red]")
+                except Exception as e:
+                    logger.error(f"Monitor thread: {e}")
+
+            t = Thread(target=_run, name="myfi-monitor", daemon=True)
+            t.start()
+            console.print(
+                "[myfi.green][  >>  ] Monitor started in background "
+                "(5 min interval).[/myfi.green]"
+            )
+            console.print(
+                "[myfi.dim]         Run 'monitor stop' to stop.[/myfi.dim]"
+            )
 
     elif args.monitor_command == "stop":
         monitor.stop()
@@ -403,18 +425,18 @@ def cmd_monitor(args: Any, engine: ChunkEngine) -> None:
         from myfi.db.database import Database
         db      = Database()
         summary = db.get_traffic_summary(monitor.my_mac)
+        console.print("\n[myfi.dim]── USAGE REPORT ── [ Last 24h ][/myfi.dim]")
         console.print(
-            f"\n[myfi.dim]── USAGE REPORT ── [ Last 24h ][/myfi.dim]"
-        )
-        console.print(
-            f"  [myfi.dim]received[/myfi.dim]  [myfi.green]{_fmt_bytes(summary['bytes_recv'])}[/myfi.green]"
-            f"    [myfi.dim]sent[/myfi.dim]  [myfi.cyan]{_fmt_bytes(summary['bytes_sent'])}[/myfi.cyan]"
+            f"  [myfi.dim]received[/myfi.dim]  "
+            f"[myfi.green]{_fmt_bytes(summary['bytes_recv'])}[/myfi.green]"
+            f"    [myfi.dim]sent[/myfi.dim]  "
+            f"[myfi.cyan]{_fmt_bytes(summary['bytes_sent'])}[/myfi.cyan]"
         )
         db.close()
     else:
-        console.print("[myfi.red][ FAIL ] Invalid subcommand: start | stop | report[/myfi.red]")
-
-
+        console.print(
+            "[myfi.red][ FAIL ] Invalid subcommand: start | stop | report[/myfi.red]"
+        )
 def cmd_limit(args: Any, engine: ChunkEngine) -> None:
     from myfi.db.database import Database
 
@@ -457,9 +479,7 @@ def cmd_limit(args: Any, engine: ChunkEngine) -> None:
             return
 
         today = str(datetime.now().date())
-        console.print(
-            f"\n[myfi.dim]── QUOTA MANAGEMENT ── [ ACTIVE LIMITS ][/myfi.dim]"
-        )
+        console.print("\n[myfi.dim]── QUOTA MANAGEMENT ── [ ACTIVE LIMITS ][/myfi.dim]")
 
         table = Table(show_header=True, box=None, padding=(0, 2))
         table.add_column("IDENTIFIER", style="myfi.body")
@@ -485,11 +505,11 @@ def cmd_limit(args: Any, engine: ChunkEngine) -> None:
 
     elif args.limit_command == "remove":
         db.remove_limit(args.mac)
-        console.print(
-            f"[myfi.green][  OK  ] Limit removed:[/myfi.green] {args.mac}"
-        )
+        console.print(f"[myfi.green][  OK  ] Limit removed:[/myfi.green] {args.mac}")
     else:
-        console.print("[myfi.red][ FAIL ] Invalid subcommand: set | show | remove[/myfi.red]")
+        console.print(
+            "[myfi.red][ FAIL ] Invalid subcommand: set | show | remove[/myfi.red]"
+        )
 
     db.close()
 
@@ -500,17 +520,15 @@ def cmd_chunk(args: Any, engine: ChunkEngine) -> None:
             console.print("[myfi.dim]No Chunks registered.[/myfi.dim]")
             return
 
-        console.print(
-            f"\n[myfi.dim]── MYFI CHUNKS ── [ REGISTERED MODULES ][/myfi.dim]"
-        )
+        console.print("\n[myfi.dim]── MYFI CHUNKS ── [ REGISTERED MODULES ][/myfi.dim]")
         table = Table(show_header=True, box=None, padding=(0, 2))
-        table.add_column("STATE",  width=8)
-        table.add_column("NAME",   style="myfi.body")
-        table.add_column("VERSION", style="myfi.dim")
+        table.add_column("STATE",    width=8)
+        table.add_column("NAME",     style="myfi.body")
+        table.add_column("VERSION",  style="myfi.dim")
         table.add_column("FUNCTION", style="myfi.cyan")
 
         for name, chunk in engine._registry.items():
-            m      = chunk.manifest()
+            m     = chunk.manifest()
             state = (
                 "[myfi.green][ ON ][/myfi.green]"
                 if chunk.enabled
@@ -533,14 +551,12 @@ def cmd_chunk(args: Any, engine: ChunkEngine) -> None:
         else:
             console.print(f"[myfi.red][ FAIL ] Chunk '{args.name}' not found.[/myfi.red]")
     else:
-        console.print("[myfi.red][ FAIL ] Invalid subcommand: list | enable | disable[/myfi.red]")
+        console.print(
+            "[myfi.red][ FAIL ] Invalid subcommand: list | enable | disable[/myfi.red]"
+        )
 
 
 def cmd_workflow(args: Any, engine: ChunkEngine) -> None:
-    """
-    Real-time visualization with dots:
-      [myfi.green]●[/] done   [myfi.cyan]◌[/] running   [dim]○[/] pending   [myfi.red]✗[/] failed
-    """
     if args.workflow_command != "run":
         console.print("[myfi.red][ FAIL ] Invalid subcommand: run[/myfi.red]")
         return
@@ -568,9 +584,7 @@ def cmd_workflow(args: Any, engine: ChunkEngine) -> None:
         console.print(f"[myfi.red][ FAIL ] {e}[/myfi.red]")
         return
 
-    states: list[dict] = [
-        {"name": s, "status": "pending", "detail": ""} for s in steps
-    ]
+    states: list[dict] = [{"name": s, "status": "pending", "detail": ""} for s in steps]
 
     def _render() -> Text:
         t = Text()
@@ -586,17 +600,15 @@ def cmd_workflow(args: Any, engine: ChunkEngine) -> None:
                 dot, style = "○", "myfi.amber"
             else:
                 dot, style = "○", "myfi.dim"
-
             t.append(f"  {dot} ", style=f"bold {style}")
             t.append(f"{s['name'].ljust(30)}", style=style)
             t.append(f"  {s['detail']}\n", style="myfi.dim")
 
-        # overall progress bar
         done_n  = sum(1 for s in states if s["status"] == "done")
         total_n = len(states)
         filled  = int(20 * done_n / total_n) if total_n else 0
         bar     = "█" * filled + "░" * (20 - filled)
-        t.append(f"\n  [myfi.dim]progress[/myfi.dim]  ", style="")
+        t.append("\n  progress  ", style="myfi.dim")
         t.append(bar, style="myfi.cyan")
         t.append(f"  {done_n} / {total_n} chunks\n", style="myfi.dim")
         return t
@@ -606,9 +618,9 @@ def cmd_workflow(args: Any, engine: ChunkEngine) -> None:
         f" [bold myfi.cyan][ {args.name} ][/bold myfi.cyan]"
     )
 
-    data: dict = {}
-    start  = datetime.now()
-    failed = False
+    data:   dict = {}
+    start        = datetime.now()
+    failed       = False
 
     with Live(_render(), refresh_per_second=10, console=console) as live:
         for i, step in enumerate(steps):
@@ -648,30 +660,24 @@ def cmd_workflow(args: Any, engine: ChunkEngine) -> None:
         if skip_n:
             detail += f"  ·  {skip_n} skipped"
         console.print(
-            f"[myfi.green][  OK  ] Workflow '{args.name}' completed in {elapsed:.1f}s.[/myfi.green]"
-            f"[myfi.dim]{detail}[/myfi.dim]"
+            f"[myfi.green][  OK  ] Workflow '{args.name}' completed in {elapsed:.1f}s."
+            f"[/myfi.green][myfi.dim]{detail}[/myfi.dim]"
         )
 
 
 def cmd_web(args: Any, engine: ChunkEngine) -> None:
     from myfi.ui.web.app import app
 
-    config = ConfigManager()
-    ip     = _get_ip(config.get("interface", "wlan0"))
-
-    console.print(f"\n[myfi.dim]── MYFI WEB INTERFACE ── [ STARTING ][/myfi.dim]")
-    console.print(
-        f"  [myfi.dim]local[/myfi.dim]   [myfi.blue]http://localhost:5000[/myfi.blue]"
-    )
-    console.print(
-        f"  [myfi.dim]network[/myfi.dim]    [myfi.blue]http://{ip}:5000[/myfi.blue]"
-    )
-    console.print(f"  [myfi.dim]ctrl+c to stop[/myfi.dim]\n")
+    ip = _get_ip(engine.config.get("interface", "wlan0"))
+    console.print("\n[myfi.dim]── MYFI WEB INTERFACE ── [ STARTING ][/myfi.dim]")
+    console.print(f"  [myfi.dim]local[/myfi.dim]    [myfi.blue]http://localhost:5000[/myfi.blue]")
+    console.print(f"  [myfi.dim]network[/myfi.dim]  [myfi.blue]http://{ip}:5000[/myfi.blue]")
+    console.print("  [myfi.dim]ctrl+c to stop[/myfi.dim]\n")
     app.run(debug=False)
 
 
 # ════════════════════════════════════════════════════════════════
-# DISPATCH
+# DESPACHO
 # ════════════════════════════════════════════════════════════════
 
 _HANDLERS: dict[str, Any] = {
@@ -698,17 +704,17 @@ def dispatch_command(args: Any, engine: ChunkEngine) -> None:
 
 
 # ════════════════════════════════════════════════════════════════
-# INTERACTIVE SHELL
+# SHELL INTERATIVA
 # ════════════════════════════════════════════════════════════════
 
 def interactive_shell(engine: ChunkEngine, parser: argparse.ArgumentParser) -> None:
-    console.print(
-        "[myfi.dim]'help' for commands  ·  'exit' to quit[/myfi.dim]\n"
-    )
+    console.print("[myfi.dim]'help' for commands  ·  'exit' to quit[/myfi.dim]\n")
 
     while True:
         try:
-            user_input = Prompt.ask("[bold myfi.cyan]myfi[/bold myfi.cyan] [myfi.cyan]>[/myfi.cyan]")
+            user_input = Prompt.ask(
+                "[bold myfi.cyan]myfi[/bold myfi.cyan] [myfi.cyan]>[/myfi.cyan]"
+            )
         except (KeyboardInterrupt, EOFError):
             console.print("\n[myfi.dim]Exiting MyFi...[/myfi.dim]")
             break
@@ -716,11 +722,9 @@ def interactive_shell(engine: ChunkEngine, parser: argparse.ArgumentParser) -> N
         user_input = user_input.strip()
         if not user_input:
             continue
-
         if user_input.lower() in ("exit", "quit", "q"):
             console.print("[myfi.dim]Goodbye.[/myfi.dim]")
             break
-
         if user_input.lower() == "help":
             show_help(engine)
             continue
