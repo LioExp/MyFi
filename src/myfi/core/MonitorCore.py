@@ -1,197 +1,285 @@
+# src/myfi/core/MonitorCore.py
+from __future__ import annotations
+
 import logging
-import subprocess
-import socket
-import time
 import re
-from datetime import datetime, date
+import socket
+import subprocess
+import time
+from datetime import datetime
 from threading import Event
-from myfi.core.config_manager import ConfigManager
+from typing import Callable
+
 from myfi.core.alerts import AlertManager
+from myfi.core.config_manager import ConfigManager
 from myfi.db.database import Database
 
 logger = logging.getLogger(__name__)
 
-class MonitorCore:
-    """Motor de monitorização de tráfego da rede."""
 
-    def __init__(self, config: ConfigManager):
-        self.config = config
-        self.db = Database()
+class MonitorCore:
+    """Motor de monitorizacao de trafego da rede."""
+
+    def __init__(self, config: ConfigManager) -> None:
+        self.config    = config
+        self.interface = config.get("interface", "wlan0")
+        self.my_ip     = self._get_ip(self.interface)
+        self.my_mac    = self._get_mac(self.interface)
+
         self.alert_mgr = AlertManager(config)
 
-        self.interface = config.get('interface', 'wlan0')
-        self.my_ip = self._get_ip_from_interface(self.interface)
-        self.my_mac = self._get_mac_from_interface(self.interface) 
+        # estado de execucao
+        self.running    = False
+        self._stop      = Event()
 
-        self.running = False
-        self.stop_event = Event()
-
-        self.limits = self._load_limits()
-        self.daily_totals = {}
-        self.alerts_sent_today = {'warning': set(), 'critical': set()}
-
+        # acumuladores de sessao
         self.session_recv = 0
         self.session_sent = 0
 
-    @staticmethod
-    def _get_ip_from_interface(interface: str) -> str:
-        try:
-            cmd = ['ip', '-4', '-o', 'addr', 'show', interface]
-            resultado = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            match = re.search(r'inet\s+(\d+\.\d+\.\d+\.\d+)', resultado.stdout)
-            if match:
-                return match.group(1)
-        except Exception as e:
-            logger.warning(f"Não foi possível obter IP da interface {interface}: {e}")
-        return '127.0.0.1'
+        # alertas por dia — resetados quando o dia muda
+        self._alert_day: str         = ""
+        self._warned:    set[str]    = set()
+        self._critical:  set[str]    = set()
+
+        # totais diarios por MAC
+        self._daily: dict[str, int]  = {}
+
+    # ════════════════════════════════════════════════════════════
+    # SISTEMA — IP / MAC
+    # ════════════════════════════════════════════════════════════
 
     @staticmethod
-    def _get_mac_from_interface(interface: str) -> str:
-        """
-        Lê o endereço MAC diretamente do sistema de ficheiros.
-        Retorna o MAC ou 'Unknown' em caso de erro.
-        """
+    def _get_ip(iface: str) -> str:
         try:
-            mac_path = f'/sys/class/net/{interface}/address'
-            with open(mac_path, 'r') as f:
-                return f.read().strip()
+            result = subprocess.run(
+                ["ip", "-4", "-o", "addr", "show", iface],
+                capture_output=True, text=True, check=True,
+            )
+            m = re.search(r"inet\s+(\d+\.\d+\.\d+\.\d+)", result.stdout)
+            if m:
+                return m.group(1)
         except Exception as e:
-            logger.warning(f"Não foi possível ler o MAC da interface {interface}: {e}")
-        return "Unknown"
+            logger.warning(f"Nao foi possivel obter IP de {iface}: {e}")
+        return "127.0.0.1"
 
-    def _load_limits(self) -> dict:
-        limits_list = self.db.get_limits()
-        limits = {}
-        for limit in limits_list:
-            limits[limit['mac']] = {
-                'type': limit['limit_type'],
-                'max_bytes': limit['bytes_max']
-            }
-        return limits
-
-    def _check_tshark_permissions(self) -> bool:
+    @staticmethod
+    def _get_mac(iface: str) -> str:
         try:
-            test_cmd = ['tshark', '-i', 'lo', '-c', '1', '-a', 'duration:1']
-            subprocess.run(test_cmd, capture_output=True, text=True, timeout=5, check=True)
+            return (
+                open(f"/sys/class/net/{iface}/address").read().strip()
+            )
+        except Exception as e:
+            logger.warning(f"Nao foi possivel ler MAC de {iface}: {e}")
+        return "unknown"
+
+    # ════════════════════════════════════════════════════════════
+    # VERIFICAÇÕES PRÉ-ARRANQUE
+    # ════════════════════════════════════════════════════════════
+
+    def _tshark_ok(self) -> bool:
+        """Verifica se tshark existe e tem permissoes para capturar."""
+        try:
+            result = subprocess.run(
+                ["tshark", "-i", "lo", "-c", "1", "-a", "duration:1"],
+                capture_output=True, text=True, timeout=5,
+            )
+            # returncode 0 = ok; 1 pode ser "no packets" mas permissoes ok
+            return result.returncode in (0, 1)
+        except FileNotFoundError:
+            logger.error("tshark nao encontrado. Instala com: sudo apt install tshark")
+            return False
+        except subprocess.TimeoutExpired:
+            # timeout na loopback e improvavel mas nao fatal
             return True
-        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+        except Exception as e:
+            logger.error(f"_tshark_ok: {e}")
             return False
 
-    def _capture_traffic(self, interface: str, duration: int = 10, tight_timeout: bool = False) -> tuple[int, int]:
-        """
-        Captura tráfego usando um único comando tshark com filtro 'ip host'.
-        Retorna (bytes_recv, bytes_sent).
-        """
-        filter_expr = f'ip host {self.my_ip}'
-        cmd = [
-            'tshark', '-i', interface,
-            '-a', f'duration:{duration}',
-            '-T', 'fields', '-e', 'frame.len', '-e', 'ip.dst', '-e', 'ip.src'
-        ]
-        cmd.append(filter_expr)
+    # ════════════════════════════════════════════════════════════
+    # CAPTURA
+    # ════════════════════════════════════════════════════════════
 
-        timeout = duration + (2 if tight_timeout else 4)
+    def _capture(self, duration: int, tight: bool = False) -> tuple[int, int]:
+        """
+        Captura trafego com tshark e devolve (bytes_recv, bytes_sent).
+        Usa -Y para filtro BPF correcto.
+        """
+        cmd = [
+            "tshark", "-i", self.interface,
+            "-a", f"duration:{duration}",
+            "-T", "fields",
+            "-e", "frame.len",
+            "-e", "ip.dst",
+            "-e", "ip.src",
+            "-Y", f"ip host {self.my_ip}",      # -Y é o filtro de display correcto
+        ]
+        timeout = duration + (2 if tight else 5)
+
         try:
-            res = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+            res = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=timeout,
+            )
+        except FileNotFoundError:
+            logger.error("tshark nao encontrado durante captura.")
+            return 0, 0
         except subprocess.TimeoutExpired:
-            logger.warning("Captura de tráfego excedeu o tempo limite.")
+            logger.warning(f"Captura excedeu {timeout}s — dados parciais descartados.")
+            return 0, 0
+        except Exception as e:
+            logger.error(f"_capture: erro inesperado: {e}")
             return 0, 0
 
-        bytes_recv = 0
-        bytes_sent = 0
+        recv = sent = 0
         for line in res.stdout.strip().splitlines():
             parts = line.split()
-            if len(parts) >= 3:
-                try:
-                    length = int(parts[0])
-                    dst = parts[1]
-                    src = parts[2]
-                    if dst == self.my_ip:
-                        bytes_recv += length
-                    if src == self.my_ip:
-                        bytes_sent += length
-                except (ValueError, IndexError):
-                    continue
-        return bytes_recv, bytes_sent
-
-    def _check_limits(self, mac: str, total_bytes: int) -> bool:
-        if mac not in self.limits:
-            return False
-        limit_info = self.limits[mac]
-        max_bytes = limit_info['max_bytes']
-        if max_bytes <= 0:
-            return False
-        usage_mb = total_bytes / (1024 * 1024)
-        limit_mb = max_bytes / (1024 * 1024)
-        ratio = total_bytes / max_bytes
-        name = self.db.get_device(mac)
-        name = name['hostname'] if name else mac
-        if ratio >= 0.8 and mac not in self.alerts_sent_today['warning']:
-            self.alert_mgr.send_and_log(mac, 'warning',
-                self.alert_mgr.send_limit_alert(mac, name, usage_mb, limit_mb, is_critical=False))
-            self.alerts_sent_today['warning'].add(mac)
-            return False
-        elif ratio >= 1.0 and mac not in self.alerts_sent_today['critical']:
-            self.alert_mgr.send_and_log(mac, 'critical',
-                self.alert_mgr.send_limit_alert(mac, name, usage_mb, limit_mb, is_critical=True))
-            self.alerts_sent_today['critical'].add(mac)
-            return True
-        return False
-
-    def start(self, live_mode: bool = False, interval: int = 300, status_callback=None):
-        if not self._check_tshark_permissions():
-            error_msg = (
-                "O tshark não tem permissões para capturar tráfego sem sudo.\n"
-                "Execute: sudo setcap cap_net_raw,cap_net_admin=eip /usr/bin/tshark\n"
-                "Ou adicione o seu utilizador ao grupo wireshark e reinicie a sessão."
-            )
-            logger.error(error_msg)
-            raise PermissionError(error_msg)
-
-        today_str = datetime.now().strftime("%Y-%m-%d")
-        for mac in self.limits:
-            summary = self.db.get_traffic_summary(mac, since=today_str + " 00:00:00")
-            self.daily_totals[mac] = summary['bytes_sent'] + summary['bytes_recv']
-
-        self.running = True
-        capture_duration = max(2, min(10, interval)) if live_mode else min(10, interval)
-        logger.info(f"Monitor iniciado (live={live_mode}, interval={interval}s, capture_duration={capture_duration}s) com IP {self.my_ip} e MAC {self.my_mac}")
-
-        while self.running and not self.stop_event.is_set():
-            cycle_start = time.time()
+            if len(parts) < 3:
+                continue
             try:
-                recv, sent = self._capture_traffic(
-                    self.interface, duration=capture_duration, tight_timeout=live_mode
+                length = int(parts[0])
+                dst, src = parts[1], parts[2]
+                if dst == self.my_ip:
+                    recv += length
+                if src == self.my_ip:
+                    sent += length
+            except (ValueError, IndexError):
+                continue
+
+        return recv, sent
+
+    # ════════════════════════════════════════════════════════════
+    # LIMITES E ALERTAS
+    # ════════════════════════════════════════════════════════════
+
+    def _reset_alerts_if_new_day(self) -> None:
+        today = datetime.now().strftime("%Y-%m-%d")
+        if today != self._alert_day:
+            self._alert_day = today
+            self._warned.clear()
+            self._critical.clear()
+            self._daily.clear()
+            logger.debug("Alertas e totais diarios resetados para o novo dia.")
+
+    def _check_limits(self, db: Database, mac: str, total_bytes: int) -> None:
+        """
+        Verifica limites e envia alertas se necessario.
+        Separado do loop principal para manter responsabilidade unica.
+        """
+        limits = db.get_limits(mac)
+        if not limits:
+            return
+
+        max_bytes = limits[0]["bytes_max"]
+        if max_bytes <= 0:
+            return
+
+        ratio = total_bytes / max_bytes
+        if ratio < 0.8:
+            return
+
+        device   = db.get_device(mac)
+        name     = device["hostname"] if device else mac
+        usage_mb = total_bytes  / (1024 * 1024)
+        limit_mb = max_bytes    / (1024 * 1024)
+
+        if ratio >= 1.0 and mac not in self._critical:
+            try:
+                self.alert_mgr.send_limit_alert(
+                    mac, name, usage_mb, limit_mb, is_critical=True
                 )
-                total = recv + sent
-
-                now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                hostname = socket.getfqdn(self.my_ip)
-
-                self.db.save_device(self.my_mac, hostname if hostname else self.my_ip, self.my_ip, self.interface)
-                self.db.save_traffic(self.my_mac, sent, recv, now)
-
-                self.daily_totals[self.my_mac] = self.daily_totals.get(self.my_mac, 0) + total
-                accumulated = self.daily_totals[self.my_mac]
-
-                self.session_recv += recv
-                self.session_sent += sent
-
-                self._check_limits(self.my_mac, accumulated)
-
-                if status_callback:
-                    status_callback(recv, sent, self.session_recv, self.session_sent)
-
+                self._critical.add(mac)
+                logger.info(f"Alerta CRITICO enviado para {mac} ({usage_mb:.0f}/{limit_mb:.0f} MB)")
             except Exception as e:
-                logger.error(f"Erro no ciclo de monitorização: {e}")
+                logger.error(f"Falha ao enviar alerta critico para {mac}: {e}")
 
-            elapsed = time.time() - cycle_start
-            wait = max(0, interval - elapsed)
-            self.stop_event.wait(wait)
+        elif 0.8 <= ratio < 1.0 and mac not in self._warned:
+            try:
+                self.alert_mgr.send_limit_alert(
+                    mac, name, usage_mb, limit_mb, is_critical=False
+                )
+                self._warned.add(mac)
+                logger.info(f"Alerta AVISO enviado para {mac} ({usage_mb:.0f}/{limit_mb:.0f} MB)")
+            except Exception as e:
+                logger.error(f"Falha ao enviar alerta de aviso para {mac}: {e}")
 
-        self.db.close()
-        logger.info("Monitor parado.")
+    # ════════════════════════════════════════════════════════════
+    # LOOP PRINCIPAL
+    # ════════════════════════════════════════════════════════════
 
-    def stop(self):
-        self.running = False
-        self.stop_event.set()
+    def start(
+        self,
+        live_mode: bool = False,
+        interval: int = 300,
+        status_callback: Callable | None = None,
+    ) -> None:
+        if not self._tshark_ok():
+            raise PermissionError(
+                "tshark nao tem permissoes para capturar trafego.\n"
+                "Executa: sudo setcap cap_net_raw,cap_net_admin=eip /usr/bin/tshark\n"
+                "Ou adiciona o utilizador ao grupo 'wireshark' e reinicia a sessao."
+            )
+
+        self._stop.clear()
+        self.running      = True
+        self.session_recv = 0
+        self.session_sent = 0
+
+        capture_duration = max(2, min(10, interval)) if live_mode else min(10, interval)
+
+        logger.info(
+            f"Monitor iniciado — iface={self.interface} ip={self.my_ip} "
+            f"mac={self.my_mac} live={live_mode} interval={interval}s "
+            f"capture={capture_duration}s"
+        )
+
+        db = Database()
+        try:
+            self._reset_alerts_if_new_day()
+            today   = datetime.now().strftime("%Y-%m-%d")
+            summary = db.get_traffic_summary(self.my_mac, since=f"{today} 00:00:00")
+            self._daily[self.my_mac] = summary["bytes_sent"] + summary["bytes_recv"]
+
+            while self.running and not self._stop.is_set():
+                self._reset_alerts_if_new_day()
+                cycle_start = time.time()
+
+                try:
+                    recv, sent = self._capture(capture_duration, tight=live_mode)
+                    now        = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+                    try:
+                        hostname = socket.gethostbyaddr(self.my_ip)[0]
+                    except (socket.herror, socket.gaierror):
+                        hostname = self.my_ip
+
+                    db.save_device(self.my_mac, hostname, self.my_ip, self.interface)
+                    db.save_traffic(self.my_mac, sent, recv, now)
+
+                    self._daily[self.my_mac] = (
+                        self._daily.get(self.my_mac, 0) + recv + sent
+                    )
+                    self.session_recv += recv
+                    self.session_sent += sent
+
+                    self._check_limits(db, self.my_mac, self._daily[self.my_mac])
+
+                    if status_callback:
+                        status_callback(recv, sent, self.session_recv, self.session_sent)
+
+                except Exception as e:
+                    logger.error(f"Erro no ciclo de monitorizacao: {e}")
+
+                elapsed = time.time() - cycle_start
+                # KeyboardInterrupt apanhado aqui — nao propaga
+                try:
+                    self._stop.wait(max(0.0, interval - elapsed))
+                except KeyboardInterrupt:
+                    logger.info("Monitor interrompido pelo utilizador.")
+                    break
+
+        except KeyboardInterrupt:
+            logger.info("Monitor interrompido pelo utilizador.")
+        finally:
+            db.close()
+            self.running = False
+            self._stop.set()
+            logger.info("Monitor parado.")
