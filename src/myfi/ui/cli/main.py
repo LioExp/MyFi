@@ -1,4 +1,3 @@
-# src/myfi/ui/cli/main.py
 from __future__ import annotations
 
 import json
@@ -30,9 +29,7 @@ console = make_console()
 logger  = logging.getLogger(__name__)
 
 
-# ════════════════════════════════════════════════════════════════
 # ENGINE
-# ════════════════════════════════════════════════════════════════
 
 def _create_engine() -> ChunkEngine:
     config = ConfigManager()
@@ -57,10 +54,7 @@ def discover_and_register_chunks(engine: ChunkEngine, subparsers: Any) -> None:
             except Exception as e:
                 logger.error(f"Chunk '{item.name}': {e}")
 
-
-# ════════════════════════════════════════════════════════════════
 # FORMATAÇÃO
-# ════════════════════════════════════════════════════════════════
 
 def _fmt_bytes(n: int) -> str:
     for unit in ("B", "KB", "MB", "GB"):
@@ -133,9 +127,7 @@ def _db_ok() -> bool:
         return False
 
 
-# ════════════════════════════════════════════════════════════════
 # LOGGING
-# ════════════════════════════════════════════════════════════════
 
 def setup_logging(verbosity: int) -> None:
     level = {-1: logging.WARNING, 0: logging.INFO}.get(verbosity, logging.DEBUG)
@@ -148,9 +140,7 @@ def setup_logging(verbosity: int) -> None:
     )
 
 
-# ════════════════════════════════════════════════════════════════
 # BANNER
-# ════════════════════════════════════════════════════════════════
 
 _BANNER = r"""
    ███╗   ███╗██╗   ██╗███████╗██╗
@@ -167,9 +157,7 @@ def _banner() -> None:
     console.print(_BANNER, style="myfi.cyan")
 
 
-# ════════════════════════════════════════════════════════════════
 # SPLASH SCREEN
-# ════════════════════════════════════════════════════════════════
 
 def show_splash_screen(engine: ChunkEngine) -> None:
     """
@@ -220,9 +208,7 @@ def show_splash_screen(engine: ChunkEngine) -> None:
     console.print()
 
 
-# ════════════════════════════════════════════════════════════════
 # HELP
-# ════════════════════════════════════════════════════════════════
 
 def show_help(engine: ChunkEngine) -> None:
     console.clear()
@@ -258,9 +244,7 @@ def show_help(engine: ChunkEngine) -> None:
     console.print()
 
 
-# ════════════════════════════════════════════════════════════════
 # COMANDOS
-# ════════════════════════════════════════════════════════════════
 
 def cmd_setup(args: Any, engine: ChunkEngine) -> None:
     iface = engine.config.get("interface", "wlan0")
