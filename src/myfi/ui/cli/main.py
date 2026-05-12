@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from time import sleep
 from typing import Any
+from threading import Thread
 
 import argparse
 from rich.live import Live
@@ -29,7 +30,9 @@ console = make_console()
 logger  = logging.getLogger(__name__)
 
 
+# ════════════════════════════════════════════════════════════════
 # ENGINE
+# ════════════════════════════════════════════════════════════════
 
 def _create_engine() -> ChunkEngine:
     config = ConfigManager()
@@ -44,7 +47,7 @@ def _create_engine() -> ChunkEngine:
 
 def discover_and_register_chunks(engine: ChunkEngine, subparsers: Any) -> None:
     chunks_dir = Path(__file__).resolve().parent.parent.parent / "chunks" / "extras"
-    for item in sorted(chunks_dir.iterdir()):          # sorted → ordem determinista
+    for item in sorted(chunks_dir.iterdir()):
         if item.is_dir() and (item / "__init__.py").exists():
             try:
                 mod = importlib.import_module(f"myfi.chunks.extras.{item.name}")
@@ -52,9 +55,17 @@ def discover_and_register_chunks(engine: ChunkEngine, subparsers: Any) -> None:
                     mod.register_chunk(engine, subparsers)
                     logger.info(f"Chunk '{item.name}' registado.")
             except Exception as e:
+                # visivel na consola — nao apenas no ficheiro de log
                 logger.error(f"Chunk '{item.name}': {e}")
+                console.print(
+                    f"[myfi.amber][ WARN ] Chunk '{item.name}' failed to load: "
+                    f"{e}[/myfi.amber]"
+                )
 
+
+# ════════════════════════════════════════════════════════════════
 # FORMATAÇÃO
+# ════════════════════════════════════════════════════════════════
 
 def _fmt_bytes(n: int) -> str:
     for unit in ("B", "KB", "MB", "GB"):
@@ -127,7 +138,9 @@ def _db_ok() -> bool:
         return False
 
 
+# ════════════════════════════════════════════════════════════════
 # LOGGING
+# ════════════════════════════════════════════════════════════════
 
 def setup_logging(verbosity: int) -> None:
     level = {-1: logging.WARNING, 0: logging.INFO}.get(verbosity, logging.DEBUG)
@@ -140,7 +153,9 @@ def setup_logging(verbosity: int) -> None:
     )
 
 
+# ════════════════════════════════════════════════════════════════
 # BANNER
+# ════════════════════════════════════════════════════════════════
 
 _BANNER = r"""
    ███╗   ███╗██╗   ██╗███████╗██╗
@@ -157,20 +172,14 @@ def _banner() -> None:
     console.print(_BANNER, style="myfi.cyan")
 
 
+# ════════════════════════════════════════════════════════════════
 # SPLASH SCREEN
+# ════════════════════════════════════════════════════════════════
 
 def show_splash_screen(engine: ChunkEngine) -> None:
-    """
-    Layout:
-        banner
-        ── MyFi v3.0.0-dev ──────────────────
-          interface  wlan0    ip  x.x.x.x    devices  N online
-          chunks     N active    alerts  N pending    db  ok | error
-    """
     console.clear()
     _banner()
 
-    # config já existe no engine — sem nova instância
     config   = engine.config
     iface    = config.get("interface", "wlan0")
     ip       = _get_ip(iface)
@@ -208,7 +217,9 @@ def show_splash_screen(engine: ChunkEngine) -> None:
     console.print()
 
 
+# ════════════════════════════════════════════════════════════════
 # HELP
+# ════════════════════════════════════════════════════════════════
 
 def show_help(engine: ChunkEngine) -> None:
     console.clear()
@@ -244,7 +255,9 @@ def show_help(engine: ChunkEngine) -> None:
     console.print()
 
 
+# ════════════════════════════════════════════════════════════════
 # COMANDOS
+# ════════════════════════════════════════════════════════════════
 
 def cmd_setup(args: Any, engine: ChunkEngine) -> None:
     iface = engine.config.get("interface", "wlan0")
@@ -346,7 +359,6 @@ def cmd_scan(args: Any, engine: ChunkEngine) -> None:
 
 def cmd_monitor(args: Any, engine: ChunkEngine) -> None:
     from myfi.core.MonitorCore import MonitorCore
-    from threading import Thread
 
     monitor = MonitorCore(engine.config)
 
@@ -354,17 +366,11 @@ def cmd_monitor(args: Any, engine: ChunkEngine) -> None:
         live  = getattr(args, "live", False)
         iface = engine.config.get("interface", "wlan0")
 
-        # verificar se já está a correr
-        if monitor.running:
-            console.print("[myfi.amber][ WARN ] Monitor already running.[/myfi.amber]")
-            return
-
         if live:
             console.print(
                 f"[myfi.cyan]LIVE STREAM[/myfi.cyan] "
                 f"[myfi.dim]{iface}  ──────────────  ctrl+c to stop[/myfi.dim]"
             )
-            # live mode: bloqueante com status — o utilizador sabe que está a correr
             try:
                 with console.status("") as status:
                     def _cb(recv, sent, s_recv, s_sent):
@@ -382,7 +388,6 @@ def cmd_monitor(args: Any, engine: ChunkEngine) -> None:
                 console.print("\n[myfi.dim]Live stream stopped.[/myfi.dim]")
 
         else:
-            # background thread — devolve controlo à shell imediatamente
             def _run():
                 try:
                     monitor.start(live_mode=False, interval=300)
@@ -421,6 +426,8 @@ def cmd_monitor(args: Any, engine: ChunkEngine) -> None:
         console.print(
             "[myfi.red][ FAIL ] Invalid subcommand: start | stop | report[/myfi.red]"
         )
+
+
 def cmd_limit(args: Any, engine: ChunkEngine) -> None:
     from myfi.db.database import Database
 
