@@ -7,6 +7,9 @@ import shlex
 import subprocess
 import sys
 import importlib
+import tempfile
+import zipfile
+import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
 from time import sleep
@@ -14,6 +17,7 @@ from typing import Any
 from threading import Thread
 
 import argparse
+import requests
 from rich.live import Live
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
@@ -25,6 +29,7 @@ from myfi.core.scanner import Scanner
 from myfi.chunks.extras.telegram_notifier import TelegramNotifierChunk
 from myfi.ui.cli.setup_wizard import SetupWizard
 from myfi.ui.cli.theme import make_console
+from myfi.core.chunk_manager import ChunkManager
 
 console = make_console()
 logger  = logging.getLogger(__name__)
@@ -46,6 +51,7 @@ def _create_engine() -> ChunkEngine:
 
 
 def discover_and_register_chunks(engine: ChunkEngine, subparsers: Any) -> None:
+    """Carrega built-ins (src/myfi/chunks/extras/) e externos (~/.myfi/chunks/)."""
     chunks_dir = Path(__file__).resolve().parent.parent.parent / "chunks" / "extras"
     for item in sorted(chunks_dir.iterdir()):
         if item.is_dir() and (item / "__init__.py").exists():
@@ -53,20 +59,26 @@ def discover_and_register_chunks(engine: ChunkEngine, subparsers: Any) -> None:
                 mod = importlib.import_module(f"myfi.chunks.extras.{item.name}")
                 if hasattr(mod, "register_chunk"):
                     mod.register_chunk(engine, subparsers)
-                    logger.info(f"Chunk '{item.name}' registado.")
+                    logger.info(f"Built-in chunk '{item.name}' carregado.")
             except Exception as e:
-                # visivel na consola — nao apenas no ficheiro de log
-                logger.error(f"Chunk '{item.name}': {e}")
+                logger.error(f"Built-in chunk '{item.name}': {e}")
                 console.print(
-                    f"[myfi.amber][ WARN ] Chunk '{item.name}' failed to load: "
-                    f"{e}[/myfi.amber]"
+                    f"[myfi.amber][ WARN ] Built-in chunk '{item.name}' "
+                    f"failed to load: {e}[/myfi.amber]"
                 )
+    try:
+        manager = ChunkManager()
+        for path in manager.installed_paths():
+            ok = engine.load_external_chunk(path, subparsers)
+            if not ok:
+                console.print(
+                    f"[myfi.amber][ WARN ] External chunk '{path.name}' "
+                    f"failed to load.[/myfi.amber]"
+                )
+    except Exception as e:
+        logger.error(f"discover_and_register_chunks: externos falharam: {e}")
 
-
-# ════════════════════════════════════════════════════════════════
 # FORMATAÇÃO
-# ════════════════════════════════════════════════════════════════
-
 def _fmt_bytes(n: int) -> str:
     for unit in ("B", "KB", "MB", "GB"):
         if n < 1024:
@@ -137,11 +149,7 @@ def _db_ok() -> bool:
     except Exception:
         return False
 
-
-# ════════════════════════════════════════════════════════════════
 # LOGGING
-# ════════════════════════════════════════════════════════════════
-
 def setup_logging(verbosity: int) -> None:
     level = {-1: logging.WARNING, 0: logging.INFO}.get(verbosity, logging.DEBUG)
     Path("logs").mkdir(exist_ok=True)
@@ -152,11 +160,7 @@ def setup_logging(verbosity: int) -> None:
         handlers=[logging.FileHandler("logs/myfi.log")],
     )
 
-
-# ════════════════════════════════════════════════════════════════
 # BANNER
-# ════════════════════════════════════════════════════════════════
-
 _BANNER = r"""
    ███╗   ███╗██╗   ██╗███████╗██╗
    ████╗ ████║╚██╗ ██╔╝██╔════╝██║
@@ -171,11 +175,7 @@ _BANNER = r"""
 def _banner() -> None:
     console.print(_BANNER, style="myfi.cyan")
 
-
-# ════════════════════════════════════════════════════════════════
 # SPLASH SCREEN
-# ════════════════════════════════════════════════════════════════
-
 def show_splash_screen(engine: ChunkEngine) -> None:
     console.clear()
     _banner()
@@ -216,11 +216,7 @@ def show_splash_screen(engine: ChunkEngine) -> None:
     )
     console.print()
 
-
-# ════════════════════════════════════════════════════════════════
 # HELP
-# ════════════════════════════════════════════════════════════════
-
 def show_help(engine: ChunkEngine) -> None:
     console.clear()
     _banner()
@@ -254,11 +250,7 @@ def show_help(engine: ChunkEngine) -> None:
     console.print(table)
     console.print()
 
-
-# ════════════════════════════════════════════════════════════════
 # COMANDOS
-# ════════════════════════════════════════════════════════════════
-
 def cmd_setup(args: Any, engine: ChunkEngine) -> None:
     iface = engine.config.get("interface", "wlan0")
     for msg in [
@@ -504,46 +496,234 @@ def cmd_limit(args: Any, engine: ChunkEngine) -> None:
 
     db.close()
 
+# CHUNK / PLUGIN MANAGEMENT
+def _chunk_list(engine: ChunkEngine) -> None:
+    manager  = ChunkManager()
+    external = {i["name"]: i for i in manager.list_installed()}
+
+    console.print("\n[myfi.dim]── MYFI CHUNKS ── [ REGISTERED MODULES ][/myfi.dim]")
+
+    table = Table(show_header=True, box=None, padding=(0, 2))
+    table.add_column("STATE",   width=8)
+    table.add_column("NAME",    style="myfi.body",  width=16)
+    table.add_column("VERSION", style="myfi.dim",   width=10)
+    table.add_column("TYPE",    style="myfi.dim",   width=10)
+    table.add_column("HEALTH",  width=10)
+    table.add_column("FUNCTION", style="myfi.cyan")
+
+    for name, chunk in engine._registry.items():
+        m        = chunk.manifest()
+        state    = (
+            "[myfi.green][ ON ][/myfi.green]"
+            if chunk.enabled
+            else "[myfi.dim][ OFF][/myfi.dim]"
+        )
+        ok, msg  = chunk.health_check() if hasattr(chunk, 'health_check') else (True, "")
+        health   = (
+            "[myfi.green]ok[/myfi.green]"
+            if ok
+            else f"[myfi.red]{msg[:20]}[/myfi.red]"
+        )
+        src      = (
+            "[myfi.dim]external[/myfi.dim]"
+            if name in external
+            else "[myfi.cyan]built-in[/myfi.cyan]"
+        )
+        table.add_row(
+            state, name,
+            m.get("version", "?"),
+            src, health,
+            m.get("description", ""),
+        )
+
+    console.print(table)
+    console.print(
+        f"\n[myfi.dim]  {len(engine._registry)} loaded"
+        f"  ·  {len(external)} external"
+        f"  ·  {len(engine._registry) - len(external)} built-in[/myfi.dim]"
+    )
+
+
+def _chunk_search(query: str) -> None:
+    console.print("\n[myfi.dim]── MYFI REGISTRY ── [ SEARCHING ][/myfi.dim]")
+
+    try:
+        manager = ChunkManager()
+        with console.status("[myfi.cyan]Fetching registry...[/myfi.cyan]", spinner="dots"):
+            results = manager.search(query)
+    except (TimeoutError, ConnectionError) as e:
+        console.print(f"[myfi.red][ FAIL ] {e}[/myfi.red]")
+        return
+    except Exception as e:
+        console.print(f"[myfi.red][ FAIL ] Registry error: {e}[/myfi.red]")
+        return
+
+    if not results:
+        console.print("[myfi.dim]No chunks found.[/myfi.dim]")
+        return
+
+    verified   = [r for r in results if r.get("verified")]
+    community  = [r for r in results if not r.get("verified")]
+
+    table = Table(show_header=True, box=None, padding=(0, 2))
+    table.add_column("NAME",        style="myfi.cyan",  width=18)
+    table.add_column("VERSION",     style="myfi.dim",   width=10)
+    table.add_column("DESCRIPTION", style="myfi.body")
+    table.add_column("TAGS",        style="myfi.dim",   width=24)
+    table.add_column("",            width=12)
+
+    if verified:
+        console.print("[myfi.dim]  VERIFIED[/myfi.dim]")
+        for r in verified:
+            inst = "[myfi.green]installed[/myfi.green]" if r.get("installed") else ""
+            table.add_row(
+                r["name"], r.get("version", ""), r.get("description", ""),
+                " ".join(r.get("tags", [])), inst,
+            )
+
+    if community:
+        console.print("[myfi.dim]  COMMUNITY[/myfi.dim]")
+        for r in community:
+            inst = "[myfi.green]installed[/myfi.green]" if r.get("installed") else ""
+            table.add_row(
+                r["name"], r.get("version", ""), r.get("description", ""),
+                " ".join(r.get("tags", [])), inst,
+            )
+
+    console.print(table)
+    console.print(f"\n[myfi.dim]{len(results)} chunks found.[/myfi.dim]")
+
+
+def _chunk_install(name: str, engine: ChunkEngine) -> None:
+    console.print(f"\n[myfi.dim]── CHUNK INSTALL ── [ {name} ][/myfi.dim]")
+
+    manager = ChunkManager()
+
+    def _progress(msg: str) -> None:
+        console.print(f"  [myfi.dim][  >>  ][/myfi.dim] [myfi.body]{msg}[/myfi.body]")
+
+    try:
+        info = manager.install(name, progress_cb=_progress)
+        console.print(
+            f"\n[myfi.green][  OK  ] {info['name']} v{info['version']} installed.[/myfi.green]"
+        )
+        console.print(
+            "[myfi.dim]         Restart MyFi or run 'chunk load' to activate.[/myfi.dim]"
+        )
+    except ValueError as e:
+        console.print(f"[myfi.amber][ WARN ] {e}[/myfi.amber]")
+    except RuntimeError as e:
+        console.print(f"[myfi.red][ FAIL ] {e}[/myfi.red]")
+    except (TimeoutError, ConnectionError) as e:
+        console.print(f"[myfi.red][ FAIL ] {e}[/myfi.red]")
+
+
+def _chunk_remove(name: str) -> None:
+    console.print(f"\n[myfi.dim]── CHUNK REMOVE ── [ {name} ][/myfi.dim]")
+
+    manager = ChunkManager()
+
+    if not Confirm.ask(f"[myfi.amber]Remove '{name}' and its files?[/myfi.amber]"):
+        console.print("[myfi.dim]Cancelled.[/myfi.dim]")
+        return
+
+    keep = Confirm.ask("[myfi.dim]Keep data files (databases, cache)?[/myfi.dim]", default=True)
+
+    try:
+        manager.remove(name, keep_data=keep)
+        console.print(f"[myfi.green][  OK  ] '{name}' removed.[/myfi.green]")
+        console.print("[myfi.dim]         Restart MyFi to deactivate.[/myfi.dim]")
+    except ValueError as e:
+        console.print(f"[myfi.red][ FAIL ] {e}[/myfi.red]")
+    except Exception as e:
+        console.print(f"[myfi.red][ FAIL ] {e}[/myfi.red]")
+
+
+def _chunk_update(name: str | None) -> None:
+    manager = ChunkManager()
+
+    def _progress(msg: str) -> None:
+        console.print(f"  [myfi.dim][  >>  ][/myfi.dim] [myfi.body]{msg}[/myfi.body]")
+
+    if name:
+        console.print(f"\n[myfi.dim]── CHUNK UPDATE ── [ {name} ][/myfi.dim]")
+        try:
+            info = manager.update(name, progress_cb=_progress)
+            console.print(
+                f"[myfi.green][  OK  ] {name} updated to v{info['version']}.[/myfi.green]"
+            )
+        except ValueError as e:
+            console.print(f"[myfi.red][ FAIL ] {e}[/myfi.red]")
+        except RuntimeError as e:
+            console.print(f"[myfi.red][ FAIL ] {e}[/myfi.red]")
+    else:
+        console.print("\n[myfi.dim]── CHUNK UPDATE ── [ all ][/myfi.dim]")
+        updated = manager.update_all(progress_cb=_progress)
+        if updated:
+            console.print(
+                f"[myfi.green][  OK  ] Updated: {', '.join(updated)}[/myfi.green]"
+            )
+        else:
+            console.print("[myfi.dim]All chunks are up to date.[/myfi.dim]")
+
+
+def _chunk_setup(name: str, engine: ChunkEngine) -> None:
+    """Corre setup() de um chunk ja instalado (ex: re-download de bases)."""
+    console.print(f"\n[myfi.dim]── CHUNK SETUP ── [ {name} ][/myfi.dim]")
+
+    chunk = engine._registry.get(name)
+    if chunk is None:
+        console.print(f"[myfi.red][ FAIL ] Chunk '{name}' not loaded.[/myfi.red]")
+        return
+
+    try:
+        with console.status(
+            f"[myfi.cyan]Running setup for {name}...[/myfi.cyan]", spinner="dots"
+        ):
+            chunk.setup()
+        console.print(f"[myfi.green][  OK  ] Setup completed for '{name}'.[/myfi.green]")
+    except Exception as e:
+        console.print(f"[myfi.red][ FAIL ] Setup failed: {e}[/myfi.red]")
+
 
 def cmd_chunk(args: Any, engine: ChunkEngine) -> None:
     if args.chunk_command == "list":
-        if not engine._registry:
-            console.print("[myfi.dim]No Chunks registered.[/myfi.dim]")
-            return
-
-        console.print("\n[myfi.dim]── MYFI CHUNKS ── [ REGISTERED MODULES ][/myfi.dim]")
-        table = Table(show_header=True, box=None, padding=(0, 2))
-        table.add_column("STATE",    width=8)
-        table.add_column("NAME",     style="myfi.body")
-        table.add_column("VERSION",  style="myfi.dim")
-        table.add_column("FUNCTION", style="myfi.cyan")
-
-        for name, chunk in engine._registry.items():
-            m     = chunk.manifest()
-            state = (
-                "[myfi.green][ ON ][/myfi.green]"
-                if chunk.enabled
-                else "[myfi.dim][ OFF][/myfi.dim]"
-            )
-            table.add_row(state, name, m.get("version", "?"), m.get("description", ""))
-        console.print(table)
-
+        _chunk_list(engine)
+    elif args.chunk_command == "search":
+        _chunk_search(getattr(args, "query", ""))
+    elif args.chunk_command == "install":
+        _chunk_install(args.name, engine)
+    elif args.chunk_command == "remove":
+        _chunk_remove(args.name)
+    elif args.chunk_command == "update":
+        name = getattr(args, "name", None)
+        _chunk_update(name)
+    elif args.chunk_command == "setup":
+        _chunk_setup(args.name, engine)
     elif args.chunk_command == "enable":
         if engine.is_registered(args.name):
             engine.enable(args.name)
-            console.print(f"[myfi.green][  OK  ] Chunk '{args.name}' enabled.[/myfi.green]")
+            console.print(
+                f"[myfi.green][  OK  ] Chunk '{args.name}' enabled.[/myfi.green]"
+            )
         else:
-            console.print(f"[myfi.red][ FAIL ] Chunk '{args.name}' not found.[/myfi.red]")
-
+            console.print(
+                f"[myfi.red][ FAIL ] Chunk '{args.name}' not found.[/myfi.red]"
+            )
     elif args.chunk_command == "disable":
         if engine.is_registered(args.name):
             engine.disable(args.name)
-            console.print(f"[myfi.amber][ WARN ] Chunk '{args.name}' disabled.[/myfi.amber]")
+            console.print(
+                f"[myfi.amber][ WARN ] Chunk '{args.name}' disabled.[/myfi.amber]"
+            )
         else:
-            console.print(f"[myfi.red][ FAIL ] Chunk '{args.name}' not found.[/myfi.red]")
+            console.print(
+                f"[myfi.red][ FAIL ] Chunk '{args.name}' not found.[/myfi.red]"
+            )
     else:
         console.print(
-            "[myfi.red][ FAIL ] Invalid subcommand: list | enable | disable[/myfi.red]"
+            "[myfi.red][ FAIL ] Invalid subcommand. "
+            "Use: list | search | install | remove | update | setup | enable | disable[/myfi.red]"
         )
 
 
@@ -564,7 +744,9 @@ def cmd_workflow(args: Any, engine: ChunkEngine) -> None:
         return
 
     if args.name not in workflows:
-        console.print(f"[myfi.red][ FAIL ] Workflow '{args.name}' does not exist.[/myfi.red]")
+        console.print(
+            f"[myfi.red][ FAIL ] Workflow '{args.name}' does not exist.[/myfi.red]"
+        )
         return
 
     steps = workflows[args.name].get("steps", [])
@@ -575,7 +757,9 @@ def cmd_workflow(args: Any, engine: ChunkEngine) -> None:
         console.print(f"[myfi.red][ FAIL ] {e}[/myfi.red]")
         return
 
-    states: list[dict] = [{"name": s, "status": "pending", "detail": ""} for s in steps]
+    states: list[dict] = [
+        {"name": s, "status": "pending", "detail": ""} for s in steps
+    ]
 
     def _render() -> Text:
         t = Text()
@@ -644,15 +828,16 @@ def cmd_workflow(args: Any, engine: ChunkEngine) -> None:
 
     if failed:
         console.print(
-            f"[myfi.red][ FAIL ] Workflow '{args.name}' failed in {elapsed:.1f}s.[/myfi.red]"
+            f"[myfi.red][ FAIL ] Workflow '{args.name}' failed in "
+            f"{elapsed:.1f}s.[/myfi.red]"
         )
     else:
         detail = f"  {done_n} executed"
         if skip_n:
             detail += f"  ·  {skip_n} skipped"
         console.print(
-            f"[myfi.green][  OK  ] Workflow '{args.name}' completed in {elapsed:.1f}s."
-            f"[/myfi.green][myfi.dim]{detail}[/myfi.dim]"
+            f"[myfi.green][  OK  ] Workflow '{args.name}' completed in "
+            f"{elapsed:.1f}s.[/myfi.green][myfi.dim]{detail}[/myfi.dim]"
         )
 
 
@@ -661,16 +846,18 @@ def cmd_web(args: Any, engine: ChunkEngine) -> None:
 
     ip = _get_ip(engine.config.get("interface", "wlan0"))
     console.print("\n[myfi.dim]── MYFI WEB INTERFACE ── [ STARTING ][/myfi.dim]")
-    console.print(f"  [myfi.dim]local[/myfi.dim]    [myfi.blue]http://localhost:5000[/myfi.blue]")
-    console.print(f"  [myfi.dim]network[/myfi.dim]  [myfi.blue]http://{ip}:5000[/myfi.blue]")
+    console.print(
+        f"  [myfi.dim]local[/myfi.dim]    "
+        f"[myfi.blue]http://localhost:5000[/myfi.blue]"
+    )
+    console.print(
+        f"  [myfi.dim]network[/myfi.dim]  "
+        f"[myfi.blue]http://{ip}:5000[/myfi.blue]"
+    )
     console.print("  [myfi.dim]ctrl+c to stop[/myfi.dim]\n")
     app.run(debug=False)
 
-
-# ════════════════════════════════════════════════════════════════
 # DESPACHO
-# ════════════════════════════════════════════════════════════════
-
 _HANDLERS: dict[str, Any] = {
     "setup":    cmd_setup,
     "scan":     cmd_scan,
@@ -691,13 +878,11 @@ def dispatch_command(args: Any, engine: ChunkEngine) -> None:
     if chunk_handler:
         chunk_handler(args)
     else:
-        console.print(f"[myfi.red][ FAIL ] Unknown command: '{args.command}'[/myfi.red]")
+        console.print(
+            f"[myfi.red][ FAIL ] Unknown command: '{args.command}'[/myfi.red]"
+        )
 
-
-# ════════════════════════════════════════════════════════════════
 # SHELL INTERATIVA
-# ════════════════════════════════════════════════════════════════
-
 def interactive_shell(engine: ChunkEngine, parser: argparse.ArgumentParser) -> None:
     console.print("[myfi.dim]'help' for commands  ·  'exit' to quit[/myfi.dim]\n")
 
@@ -729,11 +914,7 @@ def interactive_shell(engine: ChunkEngine, parser: argparse.ArgumentParser) -> N
         except Exception as e:
             console.print(f"[myfi.red][ FAIL ] {e}[/myfi.red]")
 
-
-# ════════════════════════════════════════════════════════════════
 # PARSER
-# ════════════════════════════════════════════════════════════════
-
 def build_parser() -> tuple[argparse.ArgumentParser, Any]:
     p = argparse.ArgumentParser(prog="myfi", add_help=False)
     p.add_argument("-h", "--help",    action="store_true")
@@ -768,6 +949,22 @@ def build_parser() -> tuple[argparse.ArgumentParser, Any]:
     chk     = sub.add_parser("chunk")
     chk_sub = chk.add_subparsers(dest="chunk_command")
     chk_sub.add_parser("list")
+
+    chk_search = chk_sub.add_parser("search")
+    chk_search.add_argument("query", nargs="?", default="")
+
+    chk_inst = chk_sub.add_parser("install")
+    chk_inst.add_argument("name")
+
+    chk_rem = chk_sub.add_parser("remove")
+    chk_rem.add_argument("name")
+
+    chk_upd = chk_sub.add_parser("update")
+    chk_upd.add_argument("name", nargs="?", default=None)
+
+    chk_stp = chk_sub.add_parser("setup")
+    chk_stp.add_argument("name")
+
     ce = chk_sub.add_parser("enable");  ce.add_argument("name")
     cd = chk_sub.add_parser("disable"); cd.add_argument("name")
 
@@ -778,11 +975,7 @@ def build_parser() -> tuple[argparse.ArgumentParser, Any]:
 
     return p, sub
 
-
-# ════════════════════════════════════════════════════════════════
 # MAIN
-# ════════════════════════════════════════════════════════════════
-
 def main() -> None:
     parser, subparsers = build_parser()
     engine = _create_engine()
