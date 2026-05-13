@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import platform
 import re
 import socket
 import subprocess
@@ -16,23 +17,37 @@ from myfi.db.database import Database
 
 logger = logging.getLogger(__name__)
 
+IS_WINDOWS = platform.system() == "Windows"
+
+if IS_WINDOWS:
+    from scapy.all import sniff, conf
+    # Configurar Npcap automaticamente
+    try:
+        from scapy.arch.windows import get_windows_if_list
+    except ImportError:
+        get_windows_if_list = None
+else:
+    # Linux — import só quando necessário
+    sniff = None
+    conf = None
+
 
 class MonitorCore:
-    """Motor de monitorizacao de trafego da rede."""
+    """Motor de monitorização de tráfego da rede."""
 
     def __init__(self, config: ConfigManager) -> None:
         self.config    = config
-        self.interface = config.get("interface", "wlan0")
+        self.interface = config.get("interface", self._default_interface())
         self.my_ip     = self._get_ip(self.interface)
         self.my_mac    = self._get_mac(self.interface)
 
         self.alert_mgr = AlertManager(config)
 
-        # estado de execucao
+        # estado de execução
         self.running    = False
         self._stop      = Event()
 
-        # acumuladores de sessao
+        # acumuladores de sessão
         self.session_recv = 0
         self.session_sent = 0
 
@@ -41,8 +56,28 @@ class MonitorCore:
         self._warned:    set[str]    = set()
         self._critical:  set[str]    = set()
 
-        # totais diarios por MAC
+        # totais diários por MAC
         self._daily: dict[str, int]  = {}
+
+    # ════════════════════════════════════════════════════════════
+    # INTERFACE PADRÃO
+    # ════════════════════════════════════════════════════════════
+
+    @staticmethod
+    def _default_interface() -> str:
+        """Devolve uma interface padrão adequada ao SO."""
+        if IS_WINDOWS:
+            # Listar interfaces com scapy
+            try:
+                from scapy.arch.windows import get_windows_if_list
+                ifaces = get_windows_if_list()
+                for iface in ifaces:
+                    if iface.get("ips") and iface.get("name"):
+                        return iface["name"]
+            except Exception:
+                pass
+            return "Ethernet"
+        return "wlan0"
 
     # ════════════════════════════════════════════════════════════
     # SISTEMA — IP / MAC
@@ -50,6 +85,12 @@ class MonitorCore:
 
     @staticmethod
     def _get_ip(iface: str) -> str:
+        if IS_WINDOWS:
+            return MonitorCore._get_ip_win(iface)
+        return MonitorCore._get_ip_linux(iface)
+
+    @staticmethod
+    def _get_ip_linux(iface: str) -> str:
         try:
             result = subprocess.run(
                 ["ip", "-4", "-o", "addr", "show", iface],
@@ -59,40 +100,86 @@ class MonitorCore:
             if m:
                 return m.group(1)
         except Exception as e:
-            logger.warning(f"Nao foi possivel obter IP de {iface}: {e}")
+            logger.warning(f"Não foi possível obter IP de {iface}: {e}")
+        return "127.0.0.1"
+
+    @staticmethod
+    def _get_ip_win(iface: str) -> str:
+        try:
+            result = subprocess.run(
+                ["ipconfig"],
+                capture_output=True, text=True, check=True,
+            )
+            # Procura a interface certa (aproximação simples)
+            for line in result.stdout.splitlines():
+                if iface.lower() in line.lower():
+                    # Linhas seguintes contêm o IP
+                    continue
+                if "IPv4" in line or "Endereço IPv4" in line:
+                    m = re.search(r"(\d+\.\d+\.\d+\.\d+)", line)
+                    if m:
+                        return m.group(1)
+        except Exception as e:
+            logger.warning(f"Não foi possível obter IP de {iface}: {e}")
         return "127.0.0.1"
 
     @staticmethod
     def _get_mac(iface: str) -> str:
+        if IS_WINDOWS:
+            return MonitorCore._get_mac_win(iface)
+        return MonitorCore._get_mac_linux(iface)
+
+    @staticmethod
+    def _get_mac_linux(iface: str) -> str:
         try:
-            return (
-                open(f"/sys/class/net/{iface}/address").read().strip()
-            )
+            return open(f"/sys/class/net/{iface}/address").read().strip()
         except Exception as e:
-            logger.warning(f"Nao foi possivel ler MAC de {iface}: {e}")
+            logger.warning(f"Não foi possível ler MAC de {iface}: {e}")
+        return "unknown"
+
+    @staticmethod
+    def _get_mac_win(iface: str) -> str:
+        try:
+            from scapy.all import get_if_hwaddr
+            return get_if_hwaddr(conf.iface)
+        except Exception as e:
+            logger.warning(f"Não foi possível ler MAC de {iface}: {e}")
         return "unknown"
 
     # ════════════════════════════════════════════════════════════
     # VERIFICAÇÕES PRÉ-ARRANQUE
     # ════════════════════════════════════════════════════════════
 
+    def _capture_ok(self) -> bool:
+        """Verifica se a captura de tráfego funciona no SO actual."""
+        if IS_WINDOWS:
+            return self._scapy_ok()
+        return self._tshark_ok()
+
     def _tshark_ok(self) -> bool:
-        """Verifica se tshark existe e tem permissoes para capturar."""
         try:
             result = subprocess.run(
                 ["tshark", "-i", "lo", "-c", "1", "-a", "duration:1"],
                 capture_output=True, text=True, timeout=5,
             )
-            # returncode 0 = ok; 1 pode ser "no packets" mas permissoes ok
             return result.returncode in (0, 1)
         except FileNotFoundError:
-            logger.error("tshark nao encontrado. Instala com: sudo apt install tshark")
+            logger.error("tshark não encontrado. Instala com: sudo apt install tshark")
             return False
         except subprocess.TimeoutExpired:
-            # timeout na loopback e improvavel mas nao fatal
             return True
         except Exception as e:
             logger.error(f"_tshark_ok: {e}")
+            return False
+
+    def _scapy_ok(self) -> bool:
+        try:
+            from scapy.all import sniff
+            # Tenta capturar 1 pacote em 1 segundo na interface padrão
+            sniff(iface=self.interface, timeout=1, count=1)
+            return True
+        except Exception as e:
+            logger.error(f"scapy não conseguiu capturar: {e}")
             return False
 
     # ════════════════════════════════════════════════════════════
@@ -100,10 +187,12 @@ class MonitorCore:
     # ════════════════════════════════════════════════════════════
 
     def _capture(self, duration: int, tight: bool = False) -> tuple[int, int]:
-        """
-        Captura trafego com tshark e devolve (bytes_recv, bytes_sent).
-        Usa -Y para filtro BPF correcto.
-        """
+        """Captura tráfego e devolve (bytes_recv, bytes_sent)."""
+        if IS_WINDOWS:
+            return self._capture_scapy(duration)
+        return self._capture_tshark(duration, tight)
+
+    def _capture_tshark(self, duration: int, tight: bool = False) -> tuple[int, int]:
         cmd = [
             "tshark", "-i", self.interface,
             "-a", f"duration:{duration}",
@@ -111,7 +200,7 @@ class MonitorCore:
             "-e", "frame.len",
             "-e", "ip.dst",
             "-e", "ip.src",
-            "-Y", f"ip host {self.my_ip}",      # -Y é o filtro de display correcto
+            "-Y", f"ip host {self.my_ip}",
         ]
         timeout = duration + (2 if tight else 5)
 
@@ -120,7 +209,7 @@ class MonitorCore:
                 cmd, capture_output=True, text=True, timeout=timeout,
             )
         except FileNotFoundError:
-            logger.error("tshark nao encontrado durante captura.")
+            logger.error("tshark não encontrado durante captura.")
             return 0, 0
         except subprocess.TimeoutExpired:
             logger.warning(f"Captura excedeu {timeout}s — dados parciais descartados.")
@@ -146,6 +235,33 @@ class MonitorCore:
 
         return recv, sent
 
+    def _capture_scapy(self, duration: int) -> tuple[int, int]:
+        """Captura tráfego com scapy (Windows)."""
+        recv = sent = 0
+
+        def _handler(pkt):
+            nonlocal recv, sent
+            if not pkt.haslayer("IP"):
+                return
+            ip = pkt["IP"]
+            length = len(pkt)
+            if ip.dst == self.my_ip:
+                recv += length
+            if ip.src == self.my_ip:
+                sent += length
+
+        try:
+            sniff(
+                iface=self.interface,
+                timeout=duration,
+                prn=_handler,
+                store=False,
+            )
+        except Exception as e:
+            logger.error(f"_capture_scapy: {e}")
+
+        return recv, sent
+
     # ════════════════════════════════════════════════════════════
     # LIMITES E ALERTAS
     # ════════════════════════════════════════════════════════════
@@ -157,13 +273,9 @@ class MonitorCore:
             self._warned.clear()
             self._critical.clear()
             self._daily.clear()
-            logger.debug("Alertas e totais diarios resetados para o novo dia.")
+            logger.debug("Alertas e totais diários resetados para o novo dia.")
 
     def _check_limits(self, db: Database, mac: str, total_bytes: int) -> None:
-        """
-        Verifica limites e envia alertas se necessario.
-        Separado do loop principal para manter responsabilidade unica.
-        """
         limits = db.get_limits(mac)
         if not limits:
             return
@@ -187,9 +299,9 @@ class MonitorCore:
                     mac, name, usage_mb, limit_mb, is_critical=True
                 )
                 self._critical.add(mac)
-                logger.info(f"Alerta CRITICO enviado para {mac} ({usage_mb:.0f}/{limit_mb:.0f} MB)")
+                logger.info(f"Alerta CRÍTICO enviado para {mac} ({usage_mb:.0f}/{limit_mb:.0f} MB)")
             except Exception as e:
-                logger.error(f"Falha ao enviar alerta critico para {mac}: {e}")
+                logger.error(f"Falha ao enviar alerta crítico para {mac}: {e}")
 
         elif 0.8 <= ratio < 1.0 and mac not in self._warned:
             try:
@@ -211,12 +323,18 @@ class MonitorCore:
         interval: int = 300,
         status_callback: Callable | None = None,
     ) -> None:
-        if not self._tshark_ok():
-            raise PermissionError(
-                "tshark nao tem permissoes para capturar trafego.\n"
-                "Executa: sudo setcap cap_net_raw,cap_net_admin=eip /usr/bin/tshark\n"
-                "Ou adiciona o utilizador ao grupo 'wireshark' e reinicia a sessao."
+        if not self._capture_ok():
+            msg = (
+                "scapy não tem permissões para capturar tráfego.\n"
+                "Instala o Npcap de https://npcap.com/#download"
+                if IS_WINDOWS
+                else (
+                    "tshark não tem permissões para capturar tráfego.\n"
+                    "Executa: sudo setcap cap_net_raw,cap_net_admin=eip /usr/bin/tshark\n"
+                    "Ou adiciona o utilizador ao grupo 'wireshark' e reinicia a sessão."
+                )
             )
+            raise PermissionError(msg)
 
         self._stop.clear()
         self.running      = True
@@ -226,7 +344,8 @@ class MonitorCore:
         capture_duration = max(2, min(10, interval)) if live_mode else min(10, interval)
 
         logger.info(
-            f"Monitor iniciado — iface={self.interface} ip={self.my_ip} "
+            f"Monitor iniciado — SO={'Windows' if IS_WINDOWS else 'Linux'} "
+            f"iface={self.interface} ip={self.my_ip} "
             f"mac={self.my_mac} live={live_mode} interval={interval}s "
             f"capture={capture_duration}s"
         )
@@ -266,10 +385,9 @@ class MonitorCore:
                         status_callback(recv, sent, self.session_recv, self.session_sent)
 
                 except Exception as e:
-                    logger.error(f"Erro no ciclo de monitorizacao: {e}")
+                    logger.error(f"Erro no ciclo de monitorização: {e}")
 
                 elapsed = time.time() - cycle_start
-                # KeyboardInterrupt apanhado aqui — nao propaga
                 try:
                     self._stop.wait(max(0.0, interval - elapsed))
                 except KeyboardInterrupt:

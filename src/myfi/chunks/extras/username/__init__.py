@@ -91,7 +91,7 @@ def _make_username_callback(chunk: UsernameIntelChunk):
         ):
             result = chunk.run({"username": args.query})
 
-        # ── Erro ─────────────────────────────────────────────────
+        #Erro
         if error := result.get("error"):
             console.print(f"[myfi.red][ FAIL ] {error}[/myfi.red]")
             return
@@ -111,7 +111,7 @@ def _make_username_callback(chunk: UsernameIntelChunk):
             console.print("[myfi.amber][ WARN ] Nenhuma plataforma verificada.[/myfi.amber]")
             return
 
-        # ── Score color ───────────────────────────────────────────
+        #Score color 
         _SCORE_STYLE = {
             "none":     "myfi.dim",
             "low":      "myfi.green",
@@ -122,7 +122,7 @@ def _make_username_callback(chunk: UsernameIntelChunk):
         sc  = _SCORE_STYLE.get(score, "myfi.body")
         score_str = f"[{sc}]{score}[/{sc}]"
 
-        # ── Cabeçalho ─────────────────────────────────────────────
+        # Cabeçalho
         console.print(
             f"\n"
             f"  [myfi.dim]username[/myfi.dim]        [myfi.cyan]{args.query}[/myfi.cyan]\n"
@@ -135,7 +135,7 @@ def _make_username_callback(chunk: UsernameIntelChunk):
             f"  [myfi.dim]exposure score[/myfi.dim]  {score_str}"
         )
 
-        # ── Categorias ────────────────────────────────────────────
+        # Categorias 
         if cats:
             console.print(f"\n[myfi.dim]── CATEGORIES[/myfi.dim]")
             for cat, platforms in sorted(cats.items()):
@@ -144,7 +144,7 @@ def _make_username_callback(chunk: UsernameIntelChunk):
                     f"[myfi.body]{', '.join(platforms)}[/myfi.body]"
                 )
 
-        # ── Plataformas encontradas ───────────────────────────────
+        # Plataformas encontradas
         console.print(f"\n[myfi.dim]── FOUND ({n_found})[/myfi.dim]")
         if found:
             table = Table(show_header=False, box=None, padding=(0, 2))
@@ -158,7 +158,7 @@ def _make_username_callback(chunk: UsernameIntelChunk):
         else:
             console.print("  [myfi.dim]nenhum[/myfi.dim]")
 
-        # ── Inconclusive (sites que não confirmaram nem negaram) ──
+        # Inconclusive (sites que não confirmaram nem negaram)
         incl_list = [r for r in results if "inconclusive" in r.get("status", "")]
         if incl_list:
             console.print(
@@ -175,7 +175,7 @@ def _make_username_callback(chunk: UsernameIntelChunk):
                 console.print(f"  [myfi.dim]... e mais {len(incl_list) - 20}[/myfi.dim]")
             console.print(incl_table)
 
-        # ── Google Dorks ──────────────────────────────────────────
+        # Google Dorks
         dorks = intel.get("google_dorks", [])
         if dorks:
             console.print(f"\n[myfi.dim]── GOOGLE DORKS[/myfi.dim]")
@@ -186,7 +186,7 @@ def _make_username_callback(chunk: UsernameIntelChunk):
                 dork_table.add_row(d["name"], d["url"])
             console.print(dork_table)
 
-        # ── Rodapé ────────────────────────────────────────────────
+        # Rodapé
         console.print(
             f"\n[myfi.dim]{'─' * 60}[/myfi.dim]\n"
             f"[myfi.dim]checked: [/myfi.dim][myfi.cyan]{n_total}[/myfi.cyan]"

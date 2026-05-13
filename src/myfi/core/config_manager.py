@@ -1,89 +1,125 @@
+# src/myfi/core/config_manager.py
+from __future__ import annotations
+
 import json
 import logging
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-class ConfigManager:
-    """Gestor centralizado de configuração do MyFi."""
 
-    DEFAULT_CONFIG = {
-        "interface": None,
-        "dependencies_ok": False,
-        "telegram_token": None,
+class ConfigManager:
+    """Gestor centralizado de configuracao do MyFi."""
+
+    DEFAULT_CONFIG: dict = {
+        "interface":        None,
+        "device_type":      None,
+        "dependencies_ok":  False,
+        "telegram_token":   None,
         "telegram_chat_id": None,
-        "default_limit_mb": 200,          # limite diário padrão (se não definido por dispositivo)
-        "retention_days": 30              # dias para retenção de logs (futuro)
+        "default_limit_mb": 200,
+        "retention_days":   30,
     }
 
-    def __init__(self, config_dir: Path = None):
-        if config_dir is None:
-            config_dir = Path.home() / ".myfi"
-        self.config_dir = config_dir
+    def __init__(self, config_dir: Path | None = None) -> None:
+        self.config_dir  = config_dir or Path.home() / ".myfi"
         self.config_file = self.config_dir / "config.json"
-        self._config = None
+        self._config: dict | None = None
         self._ensure_dir()
 
-    def _ensure_dir(self):
-        """Cria o diretório de configuração se não existir."""
+    # ════════════════════════════════════════════════════════════
+    # INTERNOS
+    # ════════════════════════════════════════════════════════════
+
+    def _ensure_dir(self) -> None:
         try:
-            self.config_dir.mkdir(exist_ok=True)
+            self.config_dir.mkdir(parents=True, exist_ok=True)
         except OSError as e:
-            logger.error(f"Não foi possível criar o diretório de configuração {self.config_dir}: {e}")
+            logger.error(f"Nao foi possivel criar {self.config_dir}: {e}")
             raise
 
-    def load(self) -> dict:
-        """Carrega a configuração do ficheiro e aplica valores padrão."""
-        if self._config is not None:
-            return self._config
-
+    def _load_file(self) -> dict:
+        """Le o ficheiro e devolve o dict raw. Nunca levanta excepção."""
+        if not self.config_file.exists():
+            logger.info(f"Config nao encontrada em {self.config_file}. Usando defaults.")
+            return {}
         try:
-            if self.config_file.exists():
-                with open(self.config_file, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                logger.debug(f"Configuração carregada de {self.config_file}")
-            else:
-                data = {}
-                logger.info(f"Ficheiro de configuração não encontrado em {self.config_file}, usando valores padrão.")
+            with open(self.config_file, "r", encoding="utf-8") as f:
+                return json.load(f)
         except (json.JSONDecodeError, OSError) as e:
-            logger.error(f"Erro ao ler ficheiro de configuração: {e}. Usando valores padrão.")
-            data = {}
+            logger.error(f"Erro ao ler config: {e}. Usando defaults.")
+            return {}
 
-        # Mescla com valores padrão (os valores do ficheiro têm prioridade)
-        merged = {**self.DEFAULT_CONFIG, **data}
-        self._config = merged
+    # ════════════════════════════════════════════════════════════
+    # API PÚBLICA
+    # ════════════════════════════════════════════════════════════
+
+    def load(self) -> dict:
+        """
+        Carrega a configuracao (com cache).
+        Valores do ficheiro têm prioridade sobre DEFAULT_CONFIG.
+        """
+        if self._config is None:
+            data         = self._load_file()
+            self._config = {**self.DEFAULT_CONFIG, **data}
+            logger.debug(f"Config carregada de {self.config_file}")
         return self._config
 
-    def save(self, config: dict = None):
-        """Guarda a configuração atual no ficheiro."""
-        if config is not None:
-            self._config = config
+    def save(self) -> None:
+        """
+        Persiste o estado actual no disco.
+        Chamada explicitamente — nao automaticamente a cada set().
+        """
         if self._config is None:
             self.load()
         try:
-            self._ensure_dir()
-            with open(self.config_file, 'w', encoding='utf-8') as f:
+            with open(self.config_file, "w", encoding="utf-8") as f:
                 json.dump(self._config, f, indent=2, ensure_ascii=False)
-            logger.info(f"Configuração guardada em {self.config_file}")
+            logger.info(f"Config guardada em {self.config_file}")
         except OSError as e:
-            logger.error(f"Erro ao guardar configuração: {e}")
+            logger.error(f"Erro ao guardar config: {e}")
+            raise
 
     def get(self, key: str, default=None):
-        """Retorna um valor de configuração específico."""
-        config = self.load()
-        return config.get(key, default)
+        """Devolve um valor da configuracao."""
+        return self.load().get(key, default)
 
-    def set(self, key: str, value):
-        """Define um valor de configuração e guarda."""
-        config = self.load()
-        config[key] = value
-        self.save(config)
+    def set(self, key: str, value) -> None:
+        """
+        Define um valor em memoria.
+        Nao escreve no disco — chama save() explicitamente quando terminares.
+        """
+        self.load()[key] = value
 
-    def is_configured(self) -> bool:
-        """Verifica se a configuração inicial mínima foi feita."""
-        return bool(self.get("interface")) and self.get("dependencies_ok", False)
-
-    def reload(self):
-        """Força a recarga do ficheiro de configuração (descarta cache)."""
+    def reload(self) -> dict:
+        """Forca recarga do ficheiro, descartando o cache."""
         self._config = None
         return self.load()
+
+    def reset(self) -> None:
+        """
+        Limpa a configuracao em memoria.
+        Nao apaga o ficheiro — o proximo save() ira sobreescrever.
+        """
+        self._config = {**self.DEFAULT_CONFIG}
+        logger.debug("Config resetada para defaults.")
+
+    def is_configured(self) -> bool:
+        """
+        Verifica se a configuracao minima esta feita.
+
+        - Todos os modos precisam de interface definida.
+        - local_pc precisa adicionalmente de dependencies_ok=True.
+        - hotspot e router precisam apenas de device_type definido.
+        """
+        device_type = self.get("device_type")
+        has_iface   = bool(self.get("interface"))
+
+        if not has_iface or not device_type:
+            return False
+
+        if device_type == "local_pc":
+            return self.get("dependencies_ok", False)
+
+        # hotspot e router — interface + device_type e suficiente
+        return True
