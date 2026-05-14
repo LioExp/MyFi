@@ -10,7 +10,6 @@ class AlertManager:
     def __init__(self, config: ConfigManager):
         """
         Inicializa o gerenciador de alertas.
-
         Args:
             config: Instância do ConfigManager com as configurações carregadas.
         """
@@ -25,7 +24,6 @@ class AlertManager:
     def send(self, message: str, parse_mode: str = "HTML") -> bool:
         """
         Envia uma mensagem via Telegram.
-
         Args:
             message: Texto da mensagem (pode conter tags HTML se parse_mode='HTML').
             parse_mode: Modo de parsing ('HTML' ou 'MarkdownV2').
